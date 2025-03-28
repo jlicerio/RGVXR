@@ -2,14 +2,21 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
-const arEditor = require('./debug/ar-editor.js');
-const blenderApi = require('./backup_/blender/blender-api-simple.js');
-const webxrTests = require('./debug/webxr-tests.js');
 const multer = require('multer');
 const upload = multer({ dest: 'public/audio/' });
 const app = express();
 const debugEnabled = process.env.DEBUG === 'true';
 let debugModeActive = debugEnabled;
+
+// Safe imports for debug modules
+let arEditor, blenderApi, webxrTests;
+try {
+    arEditor = require('./debug/ar-editor.js');
+    blenderApi = require('./backup_/blender/blender-api-simple.js');
+    webxrTests = require('./debug/webxr-tests.js');
+} catch (error) {
+    console.log('Debug modules not available, running in production mode');
+}
 
 // Get port from environment variable for Heroku compatibility, fallback to port.js or default
 let port = process.env.PORT || 8080;
@@ -157,7 +164,21 @@ function scanProjects() {
     console.log('Scanning directory for projects:', projectsDir);
     
     try {
+        // Check if projects directory exists and create it if not
+        if (!fs.existsSync(projectsDir)) {
+            console.log('Projects directory does not exist, creating it');
+            fs.mkdirSync(projectsDir, { recursive: true });
+            return projects; // Return empty array since no projects exist yet
+        }
+        
         const items = fs.readdirSync(projectsDir);
+        
+        // If no items found, return empty array
+        if (items.length === 0) {
+            console.log('No projects found in directory');
+            return projects;
+        }
+        
         items.forEach(item => {
             const projectPath = path.join(projectsDir, item);
             
@@ -258,6 +279,29 @@ function ensureMetadataTemplates() {
 // Call this function when the server starts
 ensureMetadataTemplates();
 
+// Add function to ensure required directories exist
+function ensureRequiredDirectories() {
+    const requiredDirs = [
+        path.join(__dirname, 'public'),
+        path.join(__dirname, 'public', 'audio'),
+        path.join(__dirname, 'projects')
+    ];
+    
+    for (const dir of requiredDirs) {
+        try {
+            if (!fs.existsSync(dir)) {
+                console.log(`Creating required directory: ${dir}`);
+                fs.mkdirSync(dir, { recursive: true });
+            }
+        } catch (error) {
+            console.error(`Error creating directory ${dir}:`, error);
+        }
+    }
+}
+
+// Call to ensure directories exist
+ensureRequiredDirectories();
+
 // Modify the SSL configuration to be optional
 let server;
 try {
@@ -325,104 +369,112 @@ try {
 // Fix the editor route registration in server.js
 // Replace lines 332-343 with this:
 if (debugModeActive) {
-    // Import the AR editor router
-    const arEditor = require('./debug/ar-editor.js');
-    
-    // Mount the AR editor at the correct path
-    app.use('/debug/editor', express.static(path.join(__dirname, 'debug', 'editor')));
-    
-    // Mount the API endpoints directly
-    app.use('/debug/api', arEditor);
-    
-    // Add a file permission diagnostic endpoint
-    app.get('/debug/check-permissions', (req, res) => {
-        const projectsDir = path.join(__dirname, 'projects');
-        const results = {
-            directory: projectsDir,
-            readable: false,
-            writable: false,
-            files: []
-        };
-        
-        try {
-            // Check if projects directory is readable
-            try {
-                fs.accessSync(projectsDir, fs.constants.R_OK);
-                results.readable = true;
-            } catch (e) {
-                results.readable = false;
-            }
+    try {
+        // Check if arEditor module is available
+        if (!arEditor) {
+            console.warn('AR Editor module not available, skipping debug setup');
+        } else {
+            // Mount the AR editor at the correct path
+            app.use('/debug/editor', express.static(path.join(__dirname, 'debug', 'editor')));
             
-            // Check if projects directory is writable
-            try {
-                fs.accessSync(projectsDir, fs.constants.W_OK);
-                results.writable = true;
-            } catch (e) {
-                results.writable = false;
-            }
+            // Mount the API endpoints directly
+            app.use('/debug/api', arEditor);
             
-            // Check a few sample files
-            if (results.readable) {
-                const items = fs.readdirSync(projectsDir);
+            // Add a file permission diagnostic endpoint
+            app.get('/debug/check-permissions', (req, res) => {
+                const projectsDir = path.join(__dirname, 'projects');
+                const results = {
+                    directory: projectsDir,
+                    readable: false,
+                    writable: false,
+                    files: []
+                };
                 
-                for (const item of items.slice(0, 3)) {
-                    const itemPath = path.join(projectsDir, item);
+                try {
+                    // Check if projects directory is readable
+                    try {
+                        fs.accessSync(projectsDir, fs.constants.R_OK);
+                        results.readable = true;
+                    } catch (e) {
+                        results.readable = false;
+                    }
                     
-                    if (fs.statSync(itemPath).isDirectory()) {
-                        const indexPath = path.join(itemPath, 'index.html');
+                    // Check if projects directory is writable
+                    try {
+                        fs.accessSync(projectsDir, fs.constants.W_OK);
+                        results.writable = true;
+                    } catch (e) {
+                        results.writable = false;
+                    }
+                    
+                    // Check a few sample files
+                    if (results.readable) {
+                        const items = fs.readdirSync(projectsDir);
                         
-                        if (fs.existsSync(indexPath)) {
-                            let fileResult = {
-                                path: indexPath,
-                                readable: false,
-                                writable: false
-                            };
+                        for (const item of items.slice(0, 3)) {
+                            const itemPath = path.join(projectsDir, item);
                             
-                            try {
-                                fs.accessSync(indexPath, fs.constants.R_OK);
-                                fileResult.readable = true;
-                            } catch (e) {
-                                fileResult.readable = false;
+                            if (fs.statSync(itemPath).isDirectory()) {
+                                const indexPath = path.join(itemPath, 'index.html');
+                                
+                                if (fs.existsSync(indexPath)) {
+                                    let fileResult = {
+                                        path: indexPath,
+                                        readable: false,
+                                        writable: false
+                                    };
+                                    
+                                    try {
+                                        fs.accessSync(indexPath, fs.constants.R_OK);
+                                        fileResult.readable = true;
+                                    } catch (e) {
+                                        fileResult.readable = false;
+                                    }
+                                    
+                                    try {
+                                        fs.accessSync(indexPath, fs.constants.W_OK);
+                                        fileResult.writable = true;
+                                    } catch (e) {
+                                        fileResult.writable = false;
+                                    }
+                                    
+                                    results.files.push(fileResult);
+                                }
                             }
-                            
-                            try {
-                                fs.accessSync(indexPath, fs.constants.W_OK);
-                                fileResult.writable = true;
-                            } catch (e) {
-                                fileResult.writable = false;
-                            }
-                            
-                            results.files.push(fileResult);
                         }
                     }
+                    
+                    res.json(results);
+                } catch (error) {
+                    res.status(500).json({ error: error.message });
                 }
+            });
+            
+            console.log('Debug mode: AR Editor enabled at /debug/editor');
+            console.log('Debug mode: API endpoints available at /debug/api');
+            console.log('Debug mode: Permission check available at /debug/check-permissions');
+            console.log('\nNOTE: If files cannot be saved, run this command to make files writable:');
+            console.log('  Windows: attrib -r projects\\*.* /s');
+            console.log('  Mac/Linux: chmod -R +w projects/');
+            
+            // Mount the Blender API endpoints if available
+            if (blenderApi) {
+                app.use('/api/blender', blenderApi);
+                console.log('Debug mode: Blender API enabled at /api/blender');
             }
             
-            res.json(results);
-        } catch (error) {
-            res.status(500).json({ error: error.message });
+            // Mount WebXR tests if available
+            if (webxrTests) {
+                app.use('/debug/test', webxrTests);
+                app.get('/debug/webxr-tests', (req, res) => {
+                    res.sendFile(path.join(__dirname, 'debug', 'webxr-test-dashboard.html'));
+                });
+                console.log('Debug mode: WebXR tests available at /debug/webxr-tests');
+            }
         }
-    });
-    
-    console.log('Debug mode: AR Editor enabled at /debug/editor');
-    console.log('Debug mode: API endpoints available at /debug/api');
-    console.log('Debug mode: Permission check available at /debug/check-permissions');
-    console.log('\nNOTE: If files cannot be saved, run this command to make files writable:');
-    console.log('  Windows: attrib -r projects\\*.* /s');
-    console.log('  Mac/Linux: chmod -R +w projects/');
-    
-    // Mount the Blender API endpoints
-    app.use('/api/blender', blenderApi);
-    
-    console.log('Debug mode: Blender API enabled at /api/blender');
-    
-    // Mount WebXR tests
-    app.use('/debug/test', webxrTests);
-    app.get('/debug/webxr-tests', (req, res) => {
-        res.sendFile(path.join(__dirname, 'debug', 'webxr-test-dashboard.html'));
-    });
-    
-    console.log('Debug mode: WebXR tests available at /debug/webxr-tests');
+    } catch (error) {
+        console.error('Error setting up debug mode:', error);
+    }
 }
 
 // Block debug paths for main server
