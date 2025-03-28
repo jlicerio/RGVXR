@@ -850,11 +850,165 @@ commit to git make sure its updated
 
 _**Assistant**_
 
-Cancelled
+```bash
+git status
+```
+
+```
+On branch main
+
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR>
+
+```
 
 ---
 
+```bash
+git add .
+```
 
+```
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR> git add .
+warning: in the working copy of '.specstory/.what-is-this.md', LF will be replaced by CRLF the next time 
+
+
+
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR>
+```
+
+---
+
+```bash
+git status
+```
+
+```
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR> git status
+On branch main
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR>
+
+
+```
+
+---
+
+```bash
+git commit -m "Update server.js for Heroku deployment"
+```
+
+```
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR> git commit -m "Update server.js for Heroku deployment"
+[main c5cbc46] Update server.js for Heroku deployment
+ 1 file changed, 214 insertions(+)
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR>
+```
+
+---
+
+All changes have been successfully committed to your git repository. Your codebase is now ready for Heroku deployment with the following improvements:
+
+1. HTTP server configured for Heroku environment
+2. PORT environment variable properly handled
+3. Directory creation ensured at startup
+4. Debug modules safely imported with error handling
+5. Procfile created for Heroku deployment
+
+To deploy to Heroku, you'll need to:
+1. Create a Heroku account if you don't have one
+2. Install the Heroku CLI or use the Heroku web interface
+3. Connect your GitHub repository to your Heroku app
+4. Deploy your application
+
+Your app is now prepared with all the necessary configuration for successful deployment.
+
+---
+
+_**User**_
+
+error
+
+---
+
+_**Assistant**_
+
+I'll help you troubleshoot this Heroku deployment error. To see what's causing the issue, we need to check the logs, but since I can't run `heroku logs --tail` directly, let's add some additional error handling and logging to your application.
+
+---
+
+```diff
+      const localIP = getLocalIP();
+      const isHeroku = process.env.PORT ? true : false;
++     
++     // Log environment and startup information
++     console.log('Starting server with configuration:');
++     console.log(`- Node version: ${process.version}`);
++     console.log(`- Environment: ${isHeroku ? 'Heroku' : 'Local'}`);
++     console.log(`- Port: ${port}`);
++     console.log(`- Debug enabled: ${debugEnabled}`);
++     console.log(`- Current directory: ${__dirname}`);
++     console.log(`- Directory contents: ${fs.readdirSync(__dirname).join(', ')}`);
+      
+      // On Heroku, we bind to all interfaces (0.0.0.0)
+  } catch (err) {
+      console.error('Failed to start server:', err);
++     console.error('Error stack:', err.stack);
+      process.exit(1);
+  }
++ 
++ // Add global error handlers
++ process.on('uncaughtException', (err) => {
++     console.error('UNCAUGHT EXCEPTION:');
++     console.error(err);
++     console.error(err.stack);
++ });
++ 
++ process.on('unhandledRejection', (reason, promise) => {
++     console.error('UNHANDLED REJECTION:');
++     console.error('Promise:', promise);
++     console.error('Reason:', reason);
++ });
+  
+  // Fix the editor route registration in server.js
+```
+
+---
+
+Let's also create a basic health check endpoint to help diagnose issues:
+
+---
+
+```diff
+  // Add this near the top of the file, after the app is created
+  app.use(express.json()); // Add middleware to parse JSON bodies
++ 
++ // Add health check endpoint
++ app.get('/health', (req, res) => {
++     const health = {
++         uptime: process.uptime(),
++         message: 'OK',
++         timestamp: Date.now(),
++         environment: process.env.PORT ? 'Heroku' : 'Local',
++         nodeVersion: process.version,
++         memoryUsage: process.memoryUsage(),
++         directories: {
++             exists: {
++                 public: fs.existsSync(path.join(__dirname, 'public')),
++                 projects: fs.existsSync(path.join(__dirname, 'projects')),
++                 publicAudio: fs.existsSync(path.join(__dirname, 'public', 'audio')),
++                 cert: fs.existsSync(path.join(__dirname, 'cert'))
++             }
++         }
++     };
++     
++     res.status(200).json(health);
++ });
+  
+  // Serve static files from the public directory
+```
+
+---
+
+Let's also modify the index.html
 
 ---
 

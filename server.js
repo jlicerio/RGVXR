@@ -42,6 +42,28 @@ app.use((req, res, next) => {
 // Add this near the top of the file, after the app is created
 app.use(express.json()); // Add middleware to parse JSON bodies
 
+// Add health check endpoint
+app.get('/health', (req, res) => {
+    const health = {
+        uptime: process.uptime(),
+        message: 'OK',
+        timestamp: Date.now(),
+        environment: process.env.PORT ? 'Heroku' : 'Local',
+        nodeVersion: process.version,
+        memoryUsage: process.memoryUsage(),
+        directories: {
+            exists: {
+                public: fs.existsSync(path.join(__dirname, 'public')),
+                projects: fs.existsSync(path.join(__dirname, 'projects')),
+                publicAudio: fs.existsSync(path.join(__dirname, 'public', 'audio')),
+                cert: fs.existsSync(path.join(__dirname, 'cert'))
+            }
+        }
+    };
+    
+    res.status(200).json(health);
+});
+
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -310,15 +332,49 @@ try {
         console.log('Running on Heroku, using HTTP server');
         server = require('http').createServer(app);
     } else {
+        // Check if cert directory exists, if not create it
+        const certDir = path.join(__dirname, 'cert');
+        if (!fs.existsSync(certDir)) {
+            console.log('Cert directory does not exist, creating it');
+            fs.mkdirSync(certDir, { recursive: true });
+        }
+        
+        // Check if key and cert files exist, if not create empty ones (for development only)
+        const keyPath = path.join(certDir, 'key.pem');
+        const certPath = path.join(certDir, 'cert.pem');
+        
+        if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
+            console.log('SSL certificates not found, create empty ones for fallback to HTTP');
+            
+            // Create empty files to prevent future errors
+            if (!fs.existsSync(keyPath)) {
+                fs.writeFileSync(keyPath, '');
+            }
+            
+            if (!fs.existsSync(certPath)) {
+                fs.writeFileSync(certPath, '');
+            }
+            
+            // Fall back to HTTP
+            throw new Error('SSL certificates are empty, using HTTP server instead');
+        }
+        
         const sslOptions = {
-            key: fs.readFileSync(path.join(__dirname, 'cert', 'key.pem')),
-            cert: fs.readFileSync(path.join(__dirname, 'cert', 'cert.pem'))
+            key: fs.readFileSync(keyPath),
+            cert: fs.readFileSync(certPath)
         };
+        
+        // Check if certificates are valid
+        if (sslOptions.key.length === 0 || sslOptions.cert.length === 0) {
+            throw new Error('SSL certificates are empty, using HTTP server instead');
+        }
+        
         server = https.createServer(sslOptions, app);
         console.log('HTTPS server created successfully');
     }
 } catch (error) {
     console.log('SSL certificates not found or error creating secure server, falling back to HTTP');
+    console.log('SSL Error:', error.message);
     server = require('http').createServer(app);
 }
 
@@ -326,6 +382,15 @@ try {
 try {
     const localIP = getLocalIP();
     const isHeroku = process.env.PORT ? true : false;
+    
+    // Log environment and startup information
+    console.log('Starting server with configuration:');
+    console.log(`- Node version: ${process.version}`);
+    console.log(`- Environment: ${isHeroku ? 'Heroku' : 'Local'}`);
+    console.log(`- Port: ${port}`);
+    console.log(`- Debug enabled: ${debugEnabled}`);
+    console.log(`- Current directory: ${__dirname}`);
+    console.log(`- Directory contents: ${fs.readdirSync(__dirname).join(', ')}`);
     
     // On Heroku, we bind to all interfaces (0.0.0.0)
     server.listen(port, '0.0.0.0', () => {
@@ -363,8 +428,22 @@ try {
     
 } catch (err) {
     console.error('Failed to start server:', err);
+    console.error('Error stack:', err.stack);
     process.exit(1);
 }
+
+// Add global error handlers
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION:');
+    console.error(err);
+    console.error(err.stack);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('UNHANDLED REJECTION:');
+    console.error('Promise:', promise);
+    console.error('Reason:', reason);
+});
 
 // Fix the editor route registration in server.js
 // Replace lines 332-343 with this:
@@ -491,7 +570,35 @@ app.use((req, res, next) => {
 
 // Handle root route
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    try {
+        const indexPath = path.join(__dirname, 'index.html');
+        if (fs.existsSync(indexPath)) {
+            res.sendFile(indexPath);
+        } else {
+            // Fallback HTML if index.html is not found
+            res.send(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>AR Projects Gallery</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                        h1 { color: #333; }
+                    </style>
+                </head>
+                <body>
+                    <h1>AR Projects Gallery</h1>
+                    <p>Welcome to the AR Projects Gallery. The main index page is currently unavailable.</p>
+                    <p>Please check the <a href="/health">server health status</a> for more information.</p>
+                </body>
+                </html>
+            `);
+            console.warn('index.html not found, serving fallback page');
+        }
+    } catch (error) {
+        console.error('Error serving index.html:', error);
+        res.status(500).send('Server Error: Unable to serve the main page');
+    }
 });
 
 // Helper function to get local IP address
