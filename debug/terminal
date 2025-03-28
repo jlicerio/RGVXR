@@ -1,0 +1,3 @@
+# From your project root
+mkdir -p projects/ar\ vid/assets/image-target
+npx @ar-js-org/image-tracking-generator --image projects/ar\ vid/assets/your-image.png --output projects/ar\ vid/assets/image-target/ 

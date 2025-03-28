@@ -1,0 +1,6 @@
+{
+    "description": "The AR Stakes project showcases an animated 3D model in augmented reality. This demonstration uses GLB format with animations to create an interactive experience.",
+    "author": "AR Projects Team",
+    "technologies": ["A-Frame", "AR.js", "GLB Model", "Animation Mixer", "WebXR"],
+    "instructions": "Place the marker on a flat surface with good lighting. Point your camera at the marker and hold steady. The animated 3D model will appear and play its animation sequence."
+} 

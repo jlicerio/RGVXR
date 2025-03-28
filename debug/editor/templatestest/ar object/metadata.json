@@ -1,0 +1,6 @@
+{
+    "description": "This project demonstrates a 3D object in augmented reality. When you point your camera at the marker, a detailed 3D model will appear in the real world.",
+    "author": "AR Projects Team",
+    "technologies": ["A-Frame", "AR.js", "GLTF Model", "WebXR"],
+    "instructions": "Point your camera at the marker pattern. Make sure the entire marker is visible and well-lit. The 3D object will appear on top of the marker. You can move around to view it from different angles."
+} 
