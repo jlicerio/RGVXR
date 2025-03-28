@@ -1,0 +1,6 @@
+{
+    "title": "GPS AR Template",
+    "description": "Location-based AR template with GPS tracking",
+    "technologies": ["WebXR", "A-Frame", "Geolocation"],
+    "instructions": "Use this template for location-based AR experiences"
+} 

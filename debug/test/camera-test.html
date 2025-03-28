@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Camera Passthrough Test</title>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        .a-canvas {
+            background-color: transparent !important;
+        }
+    </style>
+</head>
+<body>
+    <a-scene 
+        webxr="requiredFeatures: hit-test;
+               optionalFeatures: dom-overlay, unbounded;
+               overlayElement: #overlay;
+               cameraPassthrough: true;"
+        renderer="colorManagement: true; 
+                 physicallyCorrectLights: true;
+                 alpha: true;
+                 precision: high;
+                 antialias: true;">
+        
+        <!-- Add transparent environment -->
+        <a-entity environment="preset: none; skyType: none; ground: none;"></a-entity>
+        
+        <!-- Camera with passthrough component -->
+        <a-camera position="0 1.6 0" camera-passthrough></a-camera>
+        
+        <!-- Test object -->
+        <a-box position="0 1.5 -3" color="red"></a-box>
+    </a-scene>
+    
+    <div id="overlay"></div>
+    
+    <script>
+        // Add camera passthrough component
+        AFRAME.registerComponent('camera-passthrough', {
+            init: function() {
+                const sceneEl = this.el.sceneEl;
+                const renderer = sceneEl.renderer;
+                
+                // Ensure transparency
+                renderer.setClearColor('black', 0);
+                renderer.setClearAlpha(0);
+                
+                // Set up passthrough when session starts
+                sceneEl.addEventListener('enter-vr', () => {
+                    if (!sceneEl.is('ar-mode')) return;
+                    
+                    const session = sceneEl.xrSession;
+                    if (session) {
+                        session.requestReferenceSpace('local').then(space => {
+                            console.log('Camera passthrough ready');
+                        });
+                    }
+                });
+            }
+        });
+        
+        // Debug logging
+        document.querySelector('a-scene').addEventListener('loaded', function() {
+            console.log('Scene loaded');
+            console.log('Renderer:', this.renderer);
+            console.log('Is transparent:', this.renderer.getClearAlpha() === 0);
+        });
+
+        document.querySelector('a-scene').addEventListener('enter-vr', function() {
+            console.log('Entering VR/AR mode');
+            const session = this.xrSession;
+            if (session) {
+                console.log('XR Session:', session);
+                console.log('Environment Blend Mode:', session.environmentBlendMode);
+                console.log('Visibility State:', session.visibilityState);
+            }
+        });
+    </script>
+</body>
+</html> 

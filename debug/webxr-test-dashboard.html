@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebXR Camera Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .test-link {
+            display: block;
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #333;
+        }
+        .test-link:hover {
+            background-color: #e0e0e0;
+        }
+        .description {
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebXR Camera Tests</h1>
+    
+    <div class="card">
+        <h2>Available Tests</h2>
+        
+        <a href="/debug/test/basic-camera" class="test-link" target="_blank">
+            Test 1: Basic WebXR Camera Test
+            <div class="description">Simple test with minimal configuration</div>
+        </a>
+        
+        <a href="/debug/test/explicit-passthrough" class="test-link" target="_blank">
+            Test 2: Explicit Camera Passthrough Test
+            <div class="description">Test with explicit camera-access feature</div>
+        </a>
+        
+        <a href="/debug/test/browser-specific" class="test-link" target="_blank">
+            Test 3: Browser-Specific Test
+            <div class="description">Test with browser detection and feature checking</div>
+        </a>
+    </div>
+    
+    <div class="card">
+        <h2>Troubleshooting</h2>
+        <ul>
+            <li>Make sure you're using HTTPS</li>
+            <li>Check that your browser supports WebXR</li>
+            <li>Verify camera permissions are granted</li>
+            <li>Test on different devices (Android/iOS)</li>
+            <li>Check browser console for errors</li>
+        </ul>
+    </div>
+    
+    <div class="card">
+        <h2>Browser Support</h2>
+        <ul>
+            <li>Chrome 79+ on Android</li>
+            <li>Safari on iOS 13.3+ (with limitations)</li>
+            <li>Firefox Reality</li>
+            <li>Edge on compatible devices</li>
+        </ul>
+    </div>
+</body>
+</html> 

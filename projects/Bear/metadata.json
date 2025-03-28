@@ -1,0 +1,14 @@
+{
+    "title": "Carrizo Bear",
+    "description": "For the Carrizo Comecrudo people of South Texas and Northeastern Mexico, animals hold a revered place as relatives and sources of strength. The bear, in particular, and the bear skin, carry symbolic weight, embodying strength, healing, and a profound connection to the natural world. Bear skins are worn by members of the tribe during a traditional Carrizo Comecrudo ceremony known as the Bear Dance. ",
+    "author": "AR Projects Team",
+    "version": "1.0.0",
+    "technologies": [
+        "A-Frame",
+        "AR.js",
+        "WebXR"
+    ],
+    "instructions": [
+        "Allow camera access when prompted"
+    ]
+}

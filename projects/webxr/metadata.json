@@ -1,0 +1,14 @@
+{
+    "title": "",
+    "description": "Template AR experience",
+    "author": "AR Projects",
+    "version": "1.0.0",
+    "technologies": [
+        "A-Frame",
+        "AR.js",
+        "WebXR"
+    ],
+    "instructions": [
+        "Allow camera access when prompted"
+    ]
+}

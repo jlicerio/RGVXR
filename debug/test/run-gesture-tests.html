@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gesture System Tests</title>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="../../shared/gesture-manager.js"></script>
+    <script src="gesture-tests.js"></script>
+    <style>
+        #results {
+            font-family: monospace;
+            padding: 20px;
+            white-space: pre-wrap;
+        }
+        .pass { color: green; }
+        .fail { color: red; }
+    </style>
+</head>
+<body>
+    <div id="results">Running tests...</div>
+    <script>
+        // Redirect console output to results div
+        const results = document.getElementById('results');
+        const log = console.log;
+        const error = console.error;
+        console.log = (...args) => {
+            results.innerHTML += args.join(' ') + '\n';
+            log.apply(console, args);
+        };
+        console.error = (...args) => {
+            results.innerHTML += `<span class="fail">${args.join(' ')}</span>\n`;
+            error.apply(console, args);
+        };
+
+        // Run tests after page load
+        window.addEventListener('load', () => {
+            results.innerHTML = '';
+            const { passed, failed } = runTests();
+            results.innerHTML += `\nTotal: ${passed + failed} tests\n`;
+            results.innerHTML += `<span class="${passed > 0 ? 'pass' : ''}">${passed} passed</span>\n`;
+            results.innerHTML += `<span class="${failed > 0 ? 'fail' : ''}">${failed} failed</span>`;
+        });
+    </script>
+</body>
+</html> 

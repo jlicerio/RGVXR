@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src * 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; frame-src *; style-src * 'unsafe-inline';">
+    <title>AR Projects Gallery</title>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
+    <script src="/js/audio-player.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ui-bg-color: rgba(0, 0, 0, 0.85);
+            --text-color: #ffffff;
+            --accent-color: #ffffff;
+            --border-radius: 2px;
+            --transition-speed: 0.3s;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --font-size-sm: 14px;
+            --font-size-md: 16px;
+            --font-size-lg: 20px;
+            --font-size-xl: 24px;
+            --ui-bg-color-rgb: 17, 17, 17;  /* This is the RGB equivalent of #111111 */
+        }
+        
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-color);
+            background-color: #000;
+        }
+        
+        /* Control bar */
+        .controls {
+            position: fixed;
+            bottom: var(--spacing-lg);
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md);
+            background: var(--ui-bg-color);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-button {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-speed);
+            border-radius: 50%;
+        }
+
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-button svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        .info-button {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--text-color);
+            cursor: pointer;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--border-radius);
+            transition: all var(--transition-speed);
+            font-size: var(--font-size-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .info-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .info-button svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        /* Project info panel */
+        .info-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 350px;
+            height: 100%;
+            background: rgba(var(--ui-bg-color-rgb), 0.4);
+            backdrop-filter: blur(5px);
+            z-index: 1001;
+            transition: right var(--transition-speed);
+            padding: var(--spacing-lg);
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        .info-panel.active {
+            right: 0;
+        }
+
+        .info-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .info-panel-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .close-button {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .close-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .close-button svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .info-section {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .info-section-title {
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .info-section-content {
+            font-size: var(--font-size-md);
+            line-height: 1.5;
+        }
+
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+        }
+
+        .tech-tag {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: var(--border-radius);
+            font-size: var(--font-size-sm);
+        }
+
+        .share-buttons {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+
+        .share-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--border-radius);
+            transition: all var(--transition-speed);
+            font-size: var(--font-size-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .share-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .share-button svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        /* Project title */
+        .project-title {
+            position: fixed;
+            top: var(--spacing-lg);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--ui-bg-color);
+            backdrop-filter: blur(10px);
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-radius: var(--border-radius);
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            text-align: center;
+            transition: opacity var(--transition-speed);
+        }
+
+        /* Navigation dots */
+        .nav-dots {
+            position: fixed;
+            bottom: calc(var(--spacing-lg) * 2 + 60px);
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 999;
+        }
+
+        .nav-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.3);
+            transition: all var(--transition-speed);
+            cursor: pointer;
+        }
+
+        .nav-dot.active {
+            background-color: var(--text-color);
+            transform: scale(1.2);
+        }
+
+        /* Project iframe */
+        .project-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity var(--transition-speed);
+            pointer-events: none;
+        }
+
+        .project-container.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .project-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Loading indicator */
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing-md);
+            z-index: 1002;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: var(--text-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: var(--font-size-md);
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            .project-title {
+                width: 80%;
+                font-size: var(--font-size-md);
+                padding: var(--spacing-sm) var(--spacing-md);
+            }
+
+            .info-panel {
+                width: 100%;
+                right: -100%;
+            }
+
+            .controls {
+                padding: var(--spacing-sm);
+            }
+
+            .nav-button {
+                width: 36px;
+                height: 36px;
+            }
+
+            .nav-button svg {
+                width: 20px;
+                height: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Project title -->
+    <div class="project-title" id="projectTitle">Loading projects...</div>
+    
+    <!-- Control bar -->
+    <div class="controls">
+        <button class="nav-button" onclick="previousProject()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+            </svg>
+        </button>
+        <button class="info-button" onclick="showInfoPanel()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+            </svg>
+            Info
+        </button>
+        <button class="nav-button" onclick="nextProject()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+            </svg>
+        </button>
+    </div>
+    
+    <!-- Navigation dots -->
+    <div class="nav-dots" id="navDots"></div>
+    
+    <!-- Project info panel -->
+    <div class="info-panel" id="infoPanel">
+        <div class="info-panel-header">
+            <h2 class="info-panel-title" id="infoPanelTitle">Project Info</h2>
+            <button class="close-button" onclick="hideInfoPanel()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="info-section">
+            <div class="info-section-title">Description</div>
+            <div class="info-section-content" id="projectDescription">Loading...</div>
+        </div>
+        
+        <div class="info-section">
+            <div class="info-section-title">Technologies</div>
+            <div class="tech-tags" id="projectTechnologies"></div>
+        </div>
+        
+        <div class="info-section">
+            <div class="info-section-title">Instructions</div>
+            <div class="info-section-content" id="projectInstructions">Loading...</div>
+        </div>
+        
+        <div class="info-section">
+            <div class="info-section-title">Share</div>
+            <div class="share-buttons">
+                <button class="share-button" id="copyLinkBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                    </svg>
+                    Copy Link
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Project containers will be added here dynamically -->
+    <div id="projectsContainer"></div>
+    
+    <!-- Loading indicator -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading projects...</div>
+    </div>
+    
+    <script>
+        // Global variables
+        let projects = [];
+        let currentIndex = 0;
+        
+        // Load projects from API
+        async function loadProjects() {
+            try {
+                const response = await fetch('/api/projects');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                projects = await response.json();
+                
+                console.log('Loaded projects with metadata:', projects);
+                
+                if (projects.length === 0) {
+                    document.getElementById('projectTitle').textContent = 'No projects found';
+                    document.getElementById('loading').style.display = 'none';
+                    return;
+                }
+                
+                // Create project containers
+                const projectsContainer = document.getElementById('projectsContainer');
+                projects.forEach((project, index) => {
+                    const container = document.createElement('div');
+                    container.className = 'project-container';
+                    container.id = `project-${index}`;
+                    
+                    const iframe = document.createElement('iframe');
+                    iframe.className = 'project-iframe';
+                    iframe.id = `iframe-${index}`;
+                    iframe.setAttribute('allowfullscreen', '');
+                    iframe.setAttribute('allow', 'camera; microphone; accelerometer; gyroscope; magnetometer; xr-spatial-tracking;');
+                    
+                    container.appendChild(iframe);
+                    projectsContainer.appendChild(container);
+                });
+                
+                // Create navigation dots
+                const navDots = document.getElementById('navDots');
+                projects.forEach((project, index) => {
+                    const dot = document.createElement('div');
+                    dot.className = 'nav-dot';
+                    dot.onclick = () => showProject(index);
+                    navDots.appendChild(dot);
+                });
+                
+                // Show first project
+                showProject(0);
+                
+                // Hide loading indicator
+                document.getElementById('loading').style.display = 'none';
+            } catch (error) {
+                console.error('Error loading projects:', error);
+                document.getElementById('projectTitle').textContent = 'Error loading projects. Please check your network connection.';
+                document.getElementById('loading').style.display = 'none';
+                
+                // Add a retry button
+                const retryButton = document.createElement('button');
+                retryButton.className = 'info-button';
+                retryButton.textContent = 'Retry Loading';
+                retryButton.onclick = loadProjects;
+                document.getElementById('projectTitle').appendChild(retryButton);
+            }
+        }
+        
+        // Show project at index
+        function showProject(index) {
+            if (index < 0 || index >= projects.length) return;
+            
+            // Update current index
+            currentIndex = index;
+            
+            // Get the current project
+            const project = projects[index];
+            console.log('Current project metadata:', project); // Debug log
+            
+            // Update project containers
+            const containers = document.querySelectorAll('.project-container');
+            containers.forEach((container, i) => {
+                if (i === index) {
+                    container.classList.add('active');
+                    
+                    // Load iframe content if not already loaded
+                    const iframe = container.querySelector('iframe');
+                    if (!iframe.src) {
+                        iframe.src = project.path;
+                    }
+                    
+                    // Send message to pause other iframes
+                    containers.forEach((otherContainer, j) => {
+                        if (j !== i) {
+                            const otherIframe = otherContainer.querySelector('iframe');
+                            if (otherIframe.contentWindow) {
+                                otherIframe.contentWindow.postMessage('pause', '*');
+                            }
+                        }
+                    });
+                    
+                    // Send message to resume current iframe
+                    if (iframe.contentWindow) {
+                        iframe.contentWindow.postMessage('resume', '*');
+                    }
+                } else {
+                    container.classList.remove('active');
+                }
+            });
+            
+            // Update navigation dots
+            const dots = document.querySelectorAll('.nav-dot');
+            dots.forEach((dot, i) => {
+                dot.classList[i === index ? 'add' : 'remove']('active');
+            });
+            
+            // Update project title
+            document.getElementById('projectTitle').textContent = project.title || project.name;
+            
+            // Update info panel with metadata
+            document.getElementById('infoPanelTitle').textContent = project.title || project.name;
+            document.getElementById('projectDescription').textContent = project.description || 'No description available.';
+            
+            // Add URL link if it exists
+            if (project.moreInfoUrl) {
+                const urlParagraph = document.createElement('p');
+                const urlLink = document.createElement('a');
+                urlLink.href = project.moreInfoUrl;
+                urlLink.textContent = 'More Information';
+                urlLink.target = '_blank';  // Opens in new tab
+                urlLink.style.color = '#ffffff';  // Matches the theme
+                urlParagraph.appendChild(urlLink);
+                document.getElementById('projectDescription').appendChild(urlParagraph);
+            }
+            
+            // Update technologies
+            const techContainer = document.getElementById('projectTechnologies');
+            techContainer.innerHTML = '';
+            if (project.technologies && project.technologies.length > 0) {
+                project.technologies.forEach(tech => {
+                    const tag = document.createElement('div');
+                    tag.className = 'tech-tag';
+                    tag.textContent = tech;
+                    techContainer.appendChild(tag);
+                });
+            } else {
+                const tag = document.createElement('div');
+                tag.className = 'tech-tag';
+                tag.textContent = 'No technologies specified';
+                techContainer.appendChild(tag);
+            }
+            
+            // Update instructions
+            const instructionsContainer = document.getElementById('projectInstructions');
+            instructionsContainer.innerHTML = '';
+            if (project.instructions) {
+                if (Array.isArray(project.instructions)) {
+                    const ul = document.createElement('ul');
+                    project.instructions.forEach(instruction => {
+                        const li = document.createElement('li');
+                        li.textContent = instruction;
+                        ul.appendChild(li);
+                    });
+                    instructionsContainer.appendChild(ul);
+                } else {
+                    instructionsContainer.textContent = project.instructions;
+                }
+            } else {
+                instructionsContainer.textContent = 'No instructions available.';
+            }
+            
+            // Update URL
+            updateProjectUrl(index);
+        }
+        
+        // Navigation functions
+        function nextProject() {
+            showProject((currentIndex + 1) % projects.length);
+        }
+        
+        function previousProject() {
+            showProject((currentIndex - 1 + projects.length) % projects.length);
+        }
+        
+        // Info panel functions
+        function showInfoPanel() {
+            document.getElementById('infoPanel').classList.add('active');
+        }
+        
+        function hideInfoPanel() {
+            document.getElementById('infoPanel').classList.remove('active');
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProjects();
+        });
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowRight') {
+                nextProject();
+            } else if (event.key === 'ArrowLeft') {
+                previousProject();
+            } else if (event.key === 'i' || event.key === 'I') {
+                if (infoPanel.classList.contains('active')) {
+                    hideInfoPanel();
+                } else {
+                    showInfoPanel();
+                }
+            } else if (event.key === 'Escape') {
+                hideInfoPanel();
+            }
+        });
+
+        // Handle direct project links
+        function handleDirectLinks() {
+            // Get the project ID from the URL hash (e.g., #ar-object)
+            const projectId = window.location.hash.substring(1);
+            
+            if (projectId) {
+                // Find the project index by ID
+                const projectIndex = projects.findIndex(project => project.id === projectId);
+                
+                if (projectIndex !== -1) {
+                    // Set the current index and show the project
+                    currentIndex = projectIndex;
+                    showProject(currentIndex);
+                }
+            }
+        }
+
+        // Update URL when changing projects
+        function updateProjectUrl(index) {
+            if (projects[index]) {
+                // Update the URL hash without triggering a page reload
+                const projectId = projects[index].id;
+                history.replaceState(null, null, `#${projectId}`);
+                
+                // Update page title with project name
+                document.title = `${projects[index].title} | AR Projects Gallery`;
+            }
+        }
+
+        // Listen for hash changes to support back/forward navigation
+        window.addEventListener('hashchange', function() {
+            handleDirectLinks();
+        });
+
+        // Call this after loading projects
+        window.addEventListener('load', function() {
+            loadProjects().then(() => {
+                handleDirectLinks();
+            });
+        });
+
+        // Copy link functionality
+        document.getElementById('copyLinkBtn').addEventListener('click', function() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(function() {
+                // Show success message
+                const originalText = this.textContent;
+                this.textContent = 'Link Copied!';
+                
+                setTimeout(() => {
+                    this.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                        </svg>
+                        Copy Link
+                    `;
+                }, 2000);
+            }.bind(this)).catch(function(err) {
+                console.error('Could not copy text: ', err);
+            });
+        });
+
+        // Add network status monitoring
+        window.addEventListener('online', function() {
+            console.log('Network connection restored');
+            loadProjects();
+        });
+
+        window.addEventListener('offline', function() {
+            console.log('Network connection lost');
+            document.getElementById('projectTitle').textContent = 'Network connection lost. Please check your connection.';
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Basic WebXR Camera Test</title>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <style>
+        body { margin: 0; }
+    </style>
+</head>
+<body>
+    <a-scene 
+        webxr="requiredFeatures: local-floor;"
+        renderer="alpha: true;">
+        
+        <a-box position="0 1.5 -3" color="red"></a-box>
+        <a-camera></a-camera>
+    </a-scene>
+    
+    <script>
+        console.log("Test 1: Basic WebXR Camera Test");
+        
+        document.querySelector('a-scene').addEventListener('loaded', function() {
+            console.log('Scene loaded');
+        });
+        
+        document.querySelector('a-scene').addEventListener('enter-vr', function() {
+            console.log('Entering VR/AR mode');
+            console.log('Is AR mode:', this.is('ar-mode'));
+        });
+    </script>
+</body>
+</html>

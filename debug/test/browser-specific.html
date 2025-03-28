@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Browser-Specific Camera Test</title>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <style>
+        body { margin: 0; }
+    </style>
+</head>
+<body>
+    <div id="browser-info" style="position:fixed; top:10px; left:10px; background:rgba(0,0,0,0.7); color:white; padding:10px; z-index:1000;"></div>
+    
+    <a-scene 
+        webxr="requiredFeatures: local-floor;"
+        renderer="alpha: true;">
+        
+        <a-box position="0 1.5 -3" color="red"></a-box>
+        <a-camera></a-camera>
+    </a-scene>
+    
+    <script>
+        console.log("Test 3: Browser-Specific Test");
+        
+        // Detect browser
+        const browserInfo = document.getElementById('browser-info');
+        const ua = navigator.userAgent;
+        let browserName = "Unknown";
+        
+        if (ua.includes("Chrome")) browserName = "Chrome";
+        else if (ua.includes("Firefox")) browserName = "Firefox";
+        else if (ua.includes("Safari") && !ua.includes("Chrome")) browserName = "Safari";
+        else if (ua.includes("Edg")) browserName = "Edge";
+        
+        browserInfo.textContent = `Browser: ${browserName}`;
+        console.log(`Browser detected: ${browserName}`);
+        
+        // Check WebXR support
+        if (navigator.xr) {
+            navigator.xr.isSessionSupported('immersive-ar').then(supported => {
+                console.log('AR supported:', supported);
+                browserInfo.textContent += `\nAR supported: ${supported}`;
+                
+                if (supported) {
+                    // Check specific features
+                    const features = [
+                        'local-floor',
+                        'hit-test',
+                        'camera-access',
+                        'dom-overlay'
+                    ];
+                    
+                    features.forEach(feature => {
+                        console.log(`Checking feature: ${feature}`);
+                    });
+                }
+            });
+        } else {
+            console.log('WebXR not supported');
+            browserInfo.textContent += '\nWebXR not supported';
+        }
+    </script>
+</body>
+</html>

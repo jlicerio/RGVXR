@@ -1,0 +1,18 @@
+{
+  "title": "Carrizo Comecrudo Peyote Cactus",
+  "description": "This AR experience explores the cultural significance of peyote within the Esto’k Gna culture of the Carrizo/Comecrudo Tribe of Texas. Peyote holds significant religious importance, used in sacred ceremonies to induce visions and connect with the spirit world, and is considered a powerful medicine. The following excerpt from carrizocomecrudonation.com provides insight into a Carrizo peyote ceremony: 'Right in there they had a wooden bowl. The peyote was mashed up in there with water. Some drank of this. And they had buttons in there too for those who wanted to use the buttons. They had the peyote both ways. When the peyote was passed, it began at the door with the woman at the south... No matter who asked for it or where he sat, the bowl or the buttons had always to be passed from the southeast around to him. All the ground had been swept clean, and all over the ground was covered with sage. These people who were carrying on this ceremony were the Carrizo. They were not in a tipi but in a clearing out in the open. The fire was in the center. A big peyote was back of this, to the west of it. Sticks were laid around to form a little circle which stood for the tipi.' This AR experience aims to provide respectful and educational information about the cultural significance of peyote within the Carrizo Comecrudo tradition.",
+  "moreInfoUrl": "http://www.carrizocomecrudonation.com/culture.html",
+  "author": "AR Projects Team, with collaboration from the Carrizo Comecrudo Nation",
+  "version": "1.0.0",
+  "technologies": [
+    "A-Frame",
+    "AR.js",
+    "WebXR"
+  ],
+  "instructions": [
+    "Allow camera access when prompted.",
+    "Scan the target image to activate the AR experience.",
+    "Interact with the peyote cactus to learn about its cultural significance and sacred uses within the Carrizo Comecrudo context.",
+    "Please respect the sensitive nature of this object and its restricted use. This experience is for educational purposes only and does not endorse or facilitate any unauthorized use."
+  ]
+}

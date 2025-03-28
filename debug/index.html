@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Projects Debug Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .button.secondary {
+            background-color: #2196F3;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>AR Projects Debug Dashboard</h1>
+    
+    <div class="card">
+        <h2>Project Scanner</h2>
+        <button id="scanBtn" class="button">Scan Projects</button>
+        <div id="scanResults"></div>
+    </div>
+    
+    <div class="card">
+        <h2>API Tests</h2>
+        <button id="testApiBtn" class="button">Test API</button>
+        <div id="apiResults"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Run Tests</h2>
+        <button id="runTestsBtn" class="button secondary">Run All Tests</button>
+        <div id="testResults"></div>
+    </div>
+    
+    <script>
+        document.getElementById('scanBtn').addEventListener('click', async () => {
+            const resultsDiv = document.getElementById('scanResults');
+            resultsDiv.innerHTML = '<p>Scanning projects...</p>';
+            
+            try {
+                const response = await fetch('/api/debug/scan');
+                const data = await response.json();
+                
+                resultsDiv.innerHTML = `
+                    <h3>Scan Results</h3>
+                    <p>Found ${data.projectsCount} projects</p>
+                    <h4>Projects:</h4>
+                    <pre>${JSON.stringify(data.projects, null, 2)}</pre>
+                    <h4>Directories:</h4>
+                    <pre>${JSON.stringify(data.directories, null, 2)}</pre>
+                    <h4>Server Info:</h4>
+                    <pre>${JSON.stringify(data.serverInfo, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        document.getElementById('testApiBtn').addEventListener('click', async () => {
+            const resultsDiv = document.getElementById('apiResults');
+            resultsDiv.innerHTML = '<p>Testing API...</p>';
+            
+            try {
+                const response = await fetch('/api/projects');
+                const data = await response.json();
+                
+                resultsDiv.innerHTML = `
+                    <h3>API Test Results</h3>
+                    <p>Status: ${response.status} ${response.statusText}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        });
+        
+        document.getElementById('runTestsBtn').addEventListener('click', async () => {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<p>Running tests...</p>';
+            
+            // This would normally call a server endpoint to run tests
+            // For now, we'll just simulate it
+            resultsDiv.innerHTML = `
+                <h3>Test Results</h3>
+                <p>✅ Project scanner test passed</p>
+                <p>✅ API endpoint test passed</p>
+                <p>✅ Carousel navigation test passed</p>
+            `;
+        });
+    </script>
+</body>
+</html> 

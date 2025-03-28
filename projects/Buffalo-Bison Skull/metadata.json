@@ -1,0 +1,14 @@
+{
+    "title": "Carrizo Buffalo-Bison Skull",
+    "description": "The buffalo/bison skull holds significant symbolism for the Carrizo Comecrudo worldview, representing life, sustenance, and respect. Although the buffalo/bison may not have been as central to their daily survival as it was for Plains cultures, the Carrizo Comecrudo people deeply respect animals as relatives and integral parts of creation, symbolizing a connection to beliefs about the interconnectedness of life, the importance of honoring animal spirits, and the cyclical nature of existence.",
+    "author": "AR Projects Team",
+    "version": "1.0.0",
+    "technologies": [
+        "A-Frame",
+        "AR.js",
+        "WebXR"
+    ],
+    "instructions": [
+        "Allow camera access when prompted"
+    ]
+}

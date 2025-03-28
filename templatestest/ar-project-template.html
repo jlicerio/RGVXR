@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AR Project Template</title>
+    <!-- A-Frame -->
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    
+    <!-- Shared Components -->
+    <script src="../../shared/webxr-components.js"></script>
+    <script src="../../shared/ui-components.js"></script>
+    <script src="../../shared/mobile-enhancements.js"></script>
+    
+    <style>
+        body { 
+            margin: 0;
+            background-color: transparent !important;
+            overflow: hidden;
+        }
+        .a-canvas {
+            background-color: transparent !important;
+        }
+        
+        /* Loading Indicator */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div>Loading AR Experience...</div>
+    </div>
+    
+    <!-- A-Frame Scene -->
+    <a-scene 
+        webxr="requiredFeatures: local-floor, camera-access; 
+               optionalFeatures: dom-overlay, unbounded;"
+        renderer="alpha: true;
+                 colorManagement: true;
+                 antialias: true;
+                 precision: high;"
+        device-optimizations
+        ar-ui-overlay
+        touch-placement
+        gesture-controls
+        orientation-warning>
+        
+        <!-- Camera with passthrough component -->
+        <a-camera position="0 1.6 0" camera-passthrough></a-camera>
+        
+        <!-- AR Instructions -->
+        <a-entity ar-instructions="text: Tap to place object; position: 0 0 -2"></a-entity>
+        
+        <!-- Assets -->
+        <a-assets>
+            <!-- Test Models -->
+            <a-asset-item id="test-gltf" src="../shared/test-assets/test-model.glb"></a-asset-item>
+        </a-assets>
+        
+        <!-- AR Content Container -->
+        <a-entity id="ar-content" position="0 0 -3">
+            <!-- Test Objects Container -->
+            <a-entity id="test-objects" position="0 0 0">
+                <!-- Basic Test Objects -->
+                <a-box 
+                    id="test-box"
+                    position="0 1.5 -3"
+                    rotation="0 45 0"
+                    scale="0.5 0.5 0.5"
+                    color="#4CC3D9"
+                    shadow
+                    gesture-handler>
+                </a-box>
+                
+                <a-sphere
+                    id="test-sphere"
+                    position="-1 1.5 -3"
+                    radius="0.5"
+                    color="#EF2D5E"
+                    shadow
+                    gesture-handler>
+                </a-sphere>
+                
+                <a-cylinder
+                    id="test-cylinder"
+                    position="1 1.5 -3"
+                    radius="0.3"
+                    height="1"
+                    color="#FFC65D"
+                    shadow
+                    gesture-handler>
+                </a-cylinder>
+                
+                <!-- Complex Test Object -->
+                <a-entity
+                    id="test-model"
+                    gltf-model="#test-gltf"
+                    position="0 0 -3"
+                    scale="1 1 1"
+                    gesture-handler>
+                </a-entity>
+            </a-entity>
+            
+            <!-- Ground plane for reference -->
+            <a-plane
+                position="0 0 -4"
+                rotation="-90 0 0"
+                width="4"
+                height="4"
+                color="#7BC8A4"
+                shadow>
+            </a-plane>
+        </a-entity>
+        
+        <!-- Environment lighting -->
+        <a-entity light="type: ambient; intensity: 0.5;"></a-entity>
+        <a-entity light="type: directional; intensity: 0.8; castShadow: true;" position="1 1 1"></a-entity>
+    </a-scene>
+    
+    <script>
+        // Hide loading overlay when scene is loaded
+        document.querySelector('a-scene').addEventListener('loaded', function() {
+            document.getElementById('loading-overlay').style.display = 'none';
+        });
+        
+        // Handle AR session events
+        document.querySelector('a-scene').addEventListener('enter-vr', function() {
+            if (this.is('ar-mode')) {
+                console.log('Entered AR mode');
+                
+                // Show instructions
+                this.showUIInstructions('Tap on the ground to place the object');
+                
+                // Emit AR ready event
+                this.emit('ar-ready');
+            }
+        });
+        
+        // Handle object placement
+        document.querySelector('a-scene').addEventListener('ar-placed', function() {
+            console.log('Object placed');
+            
+            // Update instructions
+            this.showUIInstructions('Use pinch gestures to scale the object');
+        });
+    </script>
+</body>
+</html> 

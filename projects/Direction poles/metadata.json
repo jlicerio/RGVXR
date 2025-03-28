@@ -1,0 +1,18 @@
+
+{
+  "title": "Carrizo Direction Poles/Arrows",
+  "description": "For the Carrizo, directions hold deep spiritual significance, representing the four cardinal directions (north, south, east, west), and are also associated with elements, seasons, and stages of life. They symbolize a connection to the earth and the cosmos, as well as pathways, journeys, and guidance. The Carrizo Comecrudo have specific meanings associated with each direction, including colors, animals, or spiritual beings. The poles depicted here are called Xie Kua’k Kuam and are used for various ceremonial purposes by the Carrizo. ",
+  "moreInfoUrl": "http://www.carrizocomecrudonation.com/language.html",
+  "author": "AR Projects Team",
+  "version": "1.0.0",
+  "technologies": [
+    "A-Frame",
+    "AR.js",
+    "WebXR"
+  ],
+  "instructions": [
+    "Allow camera access when prompted.",
+    "Scan the target image to activate the AR experience.",
+    "Interact with each arrow to discover its associated direction and cultural significance within the Carrizo Comecrudo tradition."
+  ]
+}
