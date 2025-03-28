@@ -1,0 +1,27 @@
+{
+    "title": "AR GPS Experience",
+    "description": "An augmented reality experience that places 3D content at specific GPS coordinates",
+    "author": "AR Projects Team",
+    "version": "1.0.0",
+    "technologies": [
+        "A-Frame",
+        "AR.js",
+        "WebXR",
+        "GPS"
+    ],
+    "coordinates": {
+        "latitude": 26.222713,
+        "longitude": -98.21122,
+        "radius": 100
+    },
+    "instructions": [
+        "Allow camera and GPS permissions when prompted",
+        "Point your camera around to see the AR content",
+        "Content appears when you're within 100m of the target location"
+    ],
+    "requirements": {
+        "gps": true,
+        "camera": true,
+        "webxr": true
+    }
+} 

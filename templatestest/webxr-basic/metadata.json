@@ -1,6 +1,0 @@
-{
-    "title": "WebXR Basic Demo",
-    "description": "Basic WebXR template with gesture controls and test objects",
-    "technologies": ["WebXR", "A-Frame", "Gesture Controls"],
-    "instructions": "Tap to place objects. Use pinch to scale and two fingers to rotate."
-} 

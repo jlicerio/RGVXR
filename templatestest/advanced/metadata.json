@@ -1,6 +1,0 @@
-{
-    "title": "Advanced WebXR Template",
-    "description": "Advanced WebXR template with physics and environment mapping",
-    "technologies": ["WebXR", "A-Frame", "Physics", "Environment Mapping"],
-    "instructions": "Use this template for complex AR experiences with advanced features"
-} 

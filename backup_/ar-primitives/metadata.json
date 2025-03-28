@@ -1,0 +1,20 @@
+{
+    "title": "AR Primitives Demo",
+    "description": "Basic AR demonstration using A-Frame primitive shapes",
+    "author": "AR Projects Team",
+    "version": "1.0.0",
+    "technologies": [
+        "A-Frame",
+        "AR.js",
+        "WebXR"
+    ],
+    "instructions": [
+        "Allow camera access when prompted",
+        "Point camera at a flat surface",
+        "Basic shapes will appear in AR"
+    ],
+    "requirements": {
+        "camera": true,
+        "webxr": true
+    }
+} 

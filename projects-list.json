@@ -1,0 +1,20 @@
+[
+    {
+        "id": "ar-image-tracking",
+        "name": "AR Image Tracking Demo",
+        "description": "A demonstration of AR.js image tracking capabilities.",
+        "technologies": ["AR.js", "A-Frame", "WebXR"]
+    },
+    {
+        "id": "ar-primitives",
+        "name": "AR Primitives Demo",
+        "description": "Basic AR demonstration using primitive shapes and marker-based tracking.",
+        "technologies": ["AR.js", "A-Frame", "WebXR"]
+    },
+    {
+        "id": "ar-serpent",
+        "name": "AR Serpent",
+        "description": "Interactive AR serpent demonstration using marker-based tracking.",
+        "technologies": ["AR.js", "A-Frame", "WebXR", "3D Animation"]
+    }
+] 

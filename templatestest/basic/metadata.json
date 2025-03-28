@@ -1,6 +1,0 @@
-{
-    "title": "Basic WebXR Template",
-    "description": "A simple WebXR template with gesture controls and basic 3D objects",
-    "technologies": ["WebXR", "A-Frame", "Gesture Controls"],
-    "instructions": "Use this template for basic AR experiences with object manipulation"
-} 

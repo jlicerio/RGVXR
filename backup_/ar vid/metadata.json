@@ -1,0 +1,14 @@
+{
+    "title": "ar vid",
+    "description": "ar vid AR experience",
+    "author": "AR Projects Team",
+    "version": "1.0.0",
+    "technologies": [
+        "A-Frame",
+        "AR.js",
+        "WebXR"
+    ],
+    "instructions": [
+        "Allow camera access when prompted"
+    ]
+}

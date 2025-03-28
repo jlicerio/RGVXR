@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>AR Serpent Demo</title>
+        <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1.3.0/dist/aframe-master.min.js"></script>
+        <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+        <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
+        <style>
+            body, html {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+            
+            .arjs-loader {
+                height: 100%;
+                width: 100%;
+                position: absolute;
+                top: 0;
+                left: 0;
+                background-color: rgba(0, 0, 0, 0.8);
+                z-index: 9999;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            
+            .arjs-loader div {
+                text-align: center;
+                font-size: 1.25em;
+                color: white;
+            }
+            
+            .a-enter-vr {
+                display: none !important;
+            }
+        </style>
+        
+        <!-- Gesture Handler Component -->
+        <script>
+        // Gesture handler component
+        AFRAME.registerComponent('gesture-handler', {
+            schema: {
+                enabled: {type: 'boolean', default: true},
+                rotationFactor: {type: 'number', default: 5},
+                minScale: {type: 'number', default: 0.3},
+                maxScale: {type: 'number', default: 8}
+            },
+            
+            init: function() {
+                this.handleScale = this.handleScale.bind(this);
+                this.handleRotation = this.handleRotation.bind(this);
+                
+                this.initialScale = this.el.object3D.scale.clone();
+                this.scaleFactor = 1;
+                
+                this.el.sceneEl.addEventListener('gesture-rotate', this.handleRotation);
+                this.el.sceneEl.addEventListener('gesture-pinch', this.handleScale);
+            },
+            
+            handleRotation: function(event) {
+                // Get current rotation
+                const currentRotation = this.el.getAttribute('rotation') || { x: 0, y: 0, z: 0 };
+                
+                // Calculate new rotation
+                const rotationChange = event.detail.angle * this.data.rotationFactor;
+                currentRotation.y += rotationChange;
+                
+                // Apply new rotation
+                this.el.setAttribute('rotation', currentRotation);
+                console.log('Rotating by angle:', rotationChange);
+            },
+            
+            handleScale: function(event) {
+                this.scaleFactor *= event.detail.scale;
+                
+                // Clamp scale
+                this.scaleFactor = Math.min(Math.max(this.scaleFactor, this.data.minScale), this.data.maxScale);
+                
+                this.el.object3D.scale.x = this.initialScale.x * this.scaleFactor;
+                this.el.object3D.scale.y = this.initialScale.y * this.scaleFactor;
+                this.el.object3D.scale.z = this.initialScale.z * this.scaleFactor;
+            },
+            
+            remove: function() {
+                this.el.sceneEl.removeEventListener('gesture-rotate', this.handleRotation);
+                this.el.sceneEl.removeEventListener('gesture-pinch', this.handleScale);
+            }
+        });
+        
+        // Gesture detector component
+        AFRAME.registerComponent('gesture-detector', {
+            schema: {
+                element: { default: '' }
+            },
+            
+            init: function() {
+                this.targetElement = this.data.element && document.querySelector(this.data.element);
+                if (!this.targetElement) {
+                    this.targetElement = this.el;
+                }
+                
+                this.internalState = {
+                    previousState: null
+                };
+                
+                this.emitGestureEvent = this.emitGestureEvent.bind(this);
+                
+                this.targetElement.addEventListener('touchstart', this.onTouchStart.bind(this));
+                this.targetElement.addEventListener('touchend', this.onTouchEnd.bind(this));
+                this.targetElement.addEventListener('touchmove', this.onTouchMove.bind(this));
+            },
+            
+            onTouchStart: function(evt) {
+                if (evt.touches.length === 1) {
+                    this.internalState.startPosition = this.getPosition(evt.touches[0]);
+                    this.internalState.startTime = Date.now();
+                } else if (evt.touches.length === 2) {
+                    this.internalState.startPosition = this.getMidpoint(evt.touches[0], evt.touches[1]);
+                    this.internalState.startSpread = this.getSpread(evt.touches[0], evt.touches[1]);
+                    this.internalState.startAngle = this.getAngle(evt.touches[0], evt.touches[1]);
+                }
+            },
+            
+            onTouchEnd: function(evt) {
+                const endState = this.getTouchState(evt);
+                
+                const startState = this.internalState.previousState || endState;
+                
+                const positionDelta = {
+                    x: endState.position.x - startState.position.x,
+                    y: endState.position.y - startState.position.y
+                };
+                
+                if (positionDelta.x ** 2 + positionDelta.y ** 2 < 100) {
+                    this.emitGestureEvent('tap');
+                }
+                
+                this.internalState.previousState = null;
+            },
+            
+            onTouchMove: function(evt) {
+                const currentState = this.getTouchState(evt);
+                const previousState = this.internalState.previousState || currentState;
+                
+                const delta = {
+                    position: {
+                        x: currentState.position.x - previousState.position.x,
+                        y: currentState.position.y - previousState.position.y
+                    }
+                };
+                
+                if (currentState.spread) {
+                    delta.spread = currentState.spread - previousState.spread;
+                }
+                
+                if (currentState.angle) {
+                    delta.angle = currentState.angle - previousState.angle;
+                }
+                
+                // Emit events
+                if (currentState.touches === 2) {
+                    if (Math.abs(delta.spread) > 0) {
+                        this.emitGestureEvent('pinch', { scale: 1 + delta.spread / 50 });
+                    }
+                    if (Math.abs(delta.angle) > 0) {
+                        this.emitGestureEvent('rotate', { angle: delta.angle * 0.0174533 }); // Convert to radians
+                    }
+                }
+                
+                this.internalState.previousState = currentState;
+            },
+            
+            getTouchState: function(evt) {
+                if (evt.touches.length === 1) {
+                    return {
+                        touches: 1,
+                        position: this.getPosition(evt.touches[0])
+                    };
+                } else if (evt.touches.length === 2) {
+                    return {
+                        touches: 2,
+                        position: this.getMidpoint(evt.touches[0], evt.touches[1]),
+                        spread: this.getSpread(evt.touches[0], evt.touches[1]),
+                        angle: this.getAngle(evt.touches[0], evt.touches[1])
+                    };
+                }
+                return { touches: 0 };
+            },
+            
+            getPosition: function(touch) {
+                return { x: touch.clientX, y: touch.clientY };
+            },
+            
+            getMidpoint: function(touch1, touch2) {
+                return {
+                    x: (touch1.clientX + touch2.clientX) / 2,
+                    y: (touch1.clientY + touch2.clientY) / 2
+                };
+            },
+            
+            getSpread: function(touch1, touch2) {
+                return Math.sqrt(
+                    (touch1.clientX - touch2.clientX) ** 2 +
+                    (touch1.clientY - touch2.clientY) ** 2
+                );
+            },
+            
+            getAngle: function(touch1, touch2) {
+                const angle = Math.atan2(
+                    touch2.clientY - touch1.clientY,
+                    touch2.clientX - touch1.clientX
+                ) * 180 / Math.PI;
+                return angle;
+            },
+            
+            emitGestureEvent: function(eventName, detail = {}) {
+                const event = new CustomEvent(eventName, { detail: detail });
+                console.log('Emitting event:', eventName, detail);
+                this.el.dispatchEvent(event);
+                
+                const gestureEvent = new CustomEvent('gesture-' + eventName, { detail: detail });
+                this.el.dispatchEvent(gestureEvent);
+            },
+            
+            remove: function() {
+                this.targetElement.removeEventListener('touchstart', this.onTouchStart);
+                this.targetElement.removeEventListener('touchend', this.onTouchEnd);
+                this.targetElement.removeEventListener('touchmove', this.onTouchMove);
+            }
+        });
+        </script>
+    </head>
+    <body>
+        <!-- Loading screen -->
+        <div class="arjs-loader">
+            <div>Loading, please allow camera access...</div>
+        </div>
+        
+        <!-- AR Scene -->
+        <a-scene 
+            embedded 
+            vr-mode-ui="enabled: false"
+            renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true;"
+            arjs="sourceType: webcam; debugUIEnabled: true; detectionMode: mono; trackingMethod: best;"
+            gesture-detector>
+            
+            <a-assets>
+                <a-asset-item id="serpent-model" src="assets/asset.glb"></a-asset-item>
+            </a-assets>
+            
+            <a-marker type="pattern" url="assets/marker.patt">
+                <a-entity
+                    id="serpent"
+                    gltf-model="#serpent-model"
+                    position="0 0 0"
+                    scale="1 1 1"
+                    animation-mixer="loop: repeat"
+                    rotation="0 0 0"
+                    gesture-handler>
+                </a-entity>
+            </a-marker>
+            
+            <a-entity camera></a-entity>
+        </a-scene>
+        
+        <script>
+            // Remove loader when scene is loaded
+            const scene = document.querySelector('a-scene');
+            scene.addEventListener('loaded', function () {
+                const loader = document.querySelector('.arjs-loader');
+                if (loader) {
+                    loader.style.display = 'none';
+                }
+            });
+            
+            // Force camera access
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    console.log('Camera access granted');
+                    window.cameraStream = stream; // Store for later use
+                })
+                .catch(function(err) {
+                    console.error('Camera access error:', err);
+                    alert('Please allow camera access for AR to work');
+                });
+                
+            // Listen for messages from parent window
+            window.addEventListener('message', function(event) {
+                if (event.data === 'pause' && window.cameraStream) {
+                    // Pause camera when project is inactive
+                    window.cameraStream.getTracks().forEach(track => track.enabled = false);
+                } else if (event.data === 'resume' && window.cameraStream) {
+                    // Resume camera when project is active
+                    window.cameraStream.getTracks().forEach(track => track.enabled = true);
+                }
+            });
+            
+            // Add instructions
+            const instructions = document.createElement('div');
+            instructions.style.position = 'fixed';
+            instructions.style.bottom = '20px';
+            instructions.style.left = '50%';
+            instructions.style.transform = 'translateX(-50%)';
+            instructions.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            instructions.style.color = 'white';
+            instructions.style.padding = '10px 20px';
+            instructions.style.borderRadius = '5px';
+            instructions.style.fontFamily = 'Arial, sans-serif';
+            instructions.style.textAlign = 'center';
+            instructions.style.zIndex = '999';
+            instructions.innerHTML = 'Point camera at marker.<br>Use pinch gestures to scale and rotate.';
+            document.body.appendChild(instructions);
+            
+            // Hide instructions after 5 seconds
+            setTimeout(() => {
+                instructions.style.opacity = '0';
+                instructions.style.transition = 'opacity 1s';
+            }, 5000);
+            
+            // Add debug info for gestures
+            const debugInfo = document.createElement('div');
+            debugInfo.style.position = 'fixed';
+            debugInfo.style.top = '10px';
+            debugInfo.style.left = '10px';
+            debugInfo.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            debugInfo.style.color = 'white';
+            debugInfo.style.padding = '5px 10px';
+            debugInfo.style.borderRadius = '5px';
+            debugInfo.style.fontFamily = 'monospace';
+            debugInfo.style.fontSize = '12px';
+            debugInfo.style.zIndex = '999';
+            debugInfo.id = 'debug-info';
+            document.body.appendChild(debugInfo);
+            
+            // Listen for gesture events to update debug info
+            scene.addEventListener('gesture-rotate', function(e) {
+                document.getElementById('debug-info').textContent = 
+                    `Rotation: ${e.detail.angle.toFixed(4)} rad\nTime: ${new Date().toISOString().substr(11, 8)}`;
+                console.log('Rotation event:', e.detail);
+            });
+            
+            // Listen for pinch events to compare
+            scene.addEventListener('gesture-pinch', function(e) {
+                document.getElementById('debug-info').textContent += 
+                    `\nPinch: ${e.detail.scale.toFixed(4)}`;
+                console.log('Pinch event:', e.detail);
+            });
+        </script>
+    </body>
+</html>

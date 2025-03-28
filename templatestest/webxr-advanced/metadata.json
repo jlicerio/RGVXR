@@ -1,6 +1,0 @@
-{
-    "title": "WebXR Advanced Features",
-    "description": "Advanced WebXR features including environment mapping and physics",
-    "technologies": ["WebXR", "A-Frame", "Physics", "Environment Mapping"],
-    "instructions": "Interact with objects using gestures. Objects respond to physics."
-} 

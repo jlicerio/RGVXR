@@ -1,0 +1,28 @@
+{
+    "title": "AR Serpent",
+    "description": "Interactive 3D serpent model in augmented reality",
+    "author": "AR Projects Team",
+    "version": "1.0.0",
+    "technologies": [
+        "A-Frame",
+        "AR.js",
+        "WebXR",
+        "GLTF"
+    ],
+    "instructions": [
+        "Allow camera access when prompted",
+        "Point camera at the marker pattern",
+        "The serpent model will appear",
+        "Use gestures to interact with the model"
+    ],
+    "requirements": {
+        "camera": true,
+        "webxr": true,
+        "marker": true
+    },
+    "model": {
+        "format": "glTF",
+        "file": "assets/asset.glb",
+        "animations": true
+    }
+} 

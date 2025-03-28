@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <title>WebXR AR GPS Experience</title>
+        <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+        <script src="../../shared/auto-enter-ar.js"></script>
+        <script src="../../shared/webxr-components.js"></script>
+        <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+        
+        <script>
+        // Touch placement component for WebXR
+        AFRAME.registerComponent('touch-placement', {
+            init: function() {
+                this.raycaster = new THREE.Raycaster();
+                this.camera = document.querySelector('a-camera').object3D;
+                this.touchIndicator = document.createElement('div');
+                this.touchIndicator.className = 'touch-indicator';
+                document.body.appendChild(this.touchIndicator);
+                
+                // Set up touch event listeners
+                document.addEventListener('touchstart', this.onTouchStart.bind(this));
+                document.addEventListener('touchmove', this.onTouchMove.bind(this));
+                document.addEventListener('touchend', this.onTouchEnd.bind(this));
+                
+                // Place object in front of camera initially
+                this.el.sceneEl.addEventListener('enter-vr', () => {
+                    // Wait a bit for the WebXR session to initialize
+                    setTimeout(() => {
+                        this.placeObjectInFront();
+                        this.showToast('AR session started');
+                    }, 1000);
+                });
+                
+                // Show welcome message
+                this.showToast('Tap anywhere to place the object');
+            },
+            
+            onTouchStart: function(event) {
+                if (!this.el.sceneEl.is('vr-mode')) return;
+                
+                event.preventDefault();
+                this.touchActive = true;
+                this.touchIndicator.style.opacity = '1';
+                this.updateTouchIndicator(event);
+            },
+            
+            onTouchMove: function(event) {
+                if (!this.el.sceneEl.is('vr-mode') || !this.touchActive) return;
+                
+                event.preventDefault();
+                this.updateTouchIndicator(event);
+            },
+            
+            onTouchEnd: function(event) {
+                if (!this.el.sceneEl.is('vr-mode')) return;
+                
+                event.preventDefault();
+                if (this.touchActive) {
+                    this.touchActive = false;
+                    this.touchIndicator.style.opacity = '0';
+                    this.placeObjectAtTouch(event);
+                }
+            },
+            
+            updateTouchIndicator: function(event) {
+                const touch = event.touches[0];
+                this.touchIndicator.style.left = `${touch.clientX}px`;
+                this.touchIndicator.style.top = `${touch.clientY}px`;
+            },
+            
+            placeObjectAtTouch: function(event) {
+                const touch = event.changedTouches[0];
+                const x = (touch.clientX / window.innerWidth) * 2 - 1;
+                const y = -(touch.clientY / window.innerHeight) * 2 + 1;
+                
+                this.raycaster.setFromCamera({x, y}, this.camera);
+                
+                // Create a plane for raycasting
+                const planeNormal = new THREE.Vector3(0, 1, 0);
+                const plane = new THREE.Plane(planeNormal, 0);
+                
+                // Find intersection with the plane
+                const intersection = new THREE.Vector3();
+                this.raycaster.ray.intersectPlane(plane, intersection);
+                
+                if (intersection) {
+                    // Update the object position
+                    const arObject = document.querySelector('#ar-object');
+                    const height = parseFloat(document.getElementById('height-slider').value);
+                    arObject.setAttribute('position', `${intersection.x} ${height} ${intersection.z}`);
+                    
+                    // Show confirmation
+                    this.showToast('Object placed');
+                }
+            },
+            
+            placeObjectInFront: function() {
+                // Get the camera's position and rotation
+                const cameraEl = document.querySelector('a-camera');
+                const cameraPosition = cameraEl.object3D.position;
+                const cameraRotation = cameraEl.object3D.rotation;
+                
+                // Calculate a position 2 meters in front of the camera
+                const direction = new THREE.Vector3(0, 0, -1);
+                direction.applyQuaternion(cameraEl.object3D.quaternion);
+                direction.multiplyScalar(2);
+                
+                const position = new THREE.Vector3();
+                position.addVectors(cameraPosition, direction);
+                
+                // Update the object position
+                const arObject = document.querySelector('#ar-object');
+                const height = parseFloat(document.getElementById('height-slider').value);
+                arObject.setAttribute('position', `${position.x} ${height} ${position.z}`);
+                
+                // Show confirmation
+                this.showToast('Object placed in front of you');
+            },
+            
+            showToast: function(message) {
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = message;
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => {
+                        document.body.removeChild(toast);
+                    }, 500);
+                }, 2000);
+            }
+        });
+        
+        // GPS notification component
+        AFRAME.registerComponent("gps-notification", {
+            schema: {
+                latitude: { type: 'number', default: 26.222713 },
+                longitude: { type: 'number', default: -98.21122 },
+                radius: { type: 'number', default: 25 },
+                message: { type: 'string', default: 'AR content available nearby!' }
+            },
+            
+            init: function() {
+                this.watchId = null;
+                this.notified = false;
+                
+                if (navigator.geolocation) {
+                    this.watchId = navigator.geolocation.watchPosition(
+                        this.updatePosition.bind(this),
+                        this.errorHandler.bind(this),
+                        { enableHighAccuracy: true }
+                    );
+                }
+                
+                // Debug info
+                console.log(`GPS Notification initialized. Target: ${this.data.latitude}, ${this.data.longitude}, Radius: ${this.data.radius}m`);
+            },
+            
+            updatePosition: function(position) {
+                const distance = this.calculateDistance(
+                    position.coords.latitude,
+                    position.coords.longitude,
+                    this.data.latitude,
+                    this.data.longitude
+                );
+                
+                console.log(`Current position: ${position.coords.latitude}, ${position.coords.longitude}`);
+                console.log(`Distance to target: ${distance.toFixed(2)}m`);
+                
+                if (distance <= this.data.radius && !this.notified) {
+                    this.showNotification();
+                    this.notified = true;
+                } else if (distance > this.data.radius * 1.5) {
+                    // Reset notification when user moves away
+                    this.notified = false;
+                }
+            },
+            
+            calculateDistance: function(lat1, lon1, lat2, lon2) {
+                const R = 6371e3; // Earth radius in meters
+                const φ1 = lat1 * Math.PI/180;
+                const φ2 = lat2 * Math.PI/180;
+                const Δφ = (lat2-lat1) * Math.PI/180;
+                const Δλ = (lon2-lon1) * Math.PI/180;
+                
+                const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                        Math.cos(φ1) * Math.cos(φ2) *
+                        Math.sin(Δλ/2) * Math.sin(Δλ/2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                
+                return R * c; // Distance in meters
+            },
+            
+            showNotification: function() {
+                // Create notification element
+                const notification = document.createElement("div");
+                notification.className = "notification";
+                notification.textContent = this.data.message;
+                
+                document.body.appendChild(notification);
+                
+                // Remove after 5 seconds
+                setTimeout(() => {
+                    notification.style.opacity = "0";
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 500);
+                }, 5000);
+            },
+            
+            errorHandler: function(error) {
+                console.error("GPS error:", error.message);
+            },
+            
+            remove: function() {
+                if (this.watchId !== null) {
+                    navigator.geolocation.clearWatch(this.watchId);
+                }
+            }
+        });
+        </script>
+        
+        <style>
+            /* Reset all margins and make sure content fills screen */
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                overflow: hidden !important;
+                background: transparent !important;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+
+            /* Force the canvas to fill the screen */
+            .a-canvas {
+                width: 100% !important;
+                height: 100% !important;
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                z-index: 0 !important;
+                display: block !important;
+                background: transparent !important;
+            }
+
+            /* Ensure scene container fills screen */
+            .arjs-loader {
+                height: 100%;
+                width: 100%;
+                position: absolute;
+                top: 0;
+                left: 0;
+                background-color: rgba(0, 0, 0, 0.8);
+                z-index: 9999;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            /* Remove any margins from scene */
+            a-scene {
+                display: block;
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                background: transparent !important;
+            }
+            
+            #debug-panel {
+                position: fixed;
+                top: 10px;
+                left: 10px;
+                background-color: rgba(0, 0, 0, 0.7);
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+                font-family: monospace;
+                font-size: 12px;
+                z-index: 999;
+                max-width: 200px;
+            }
+            
+            .control-panel {
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background-color: rgba(0, 0, 0, 0.7);
+                color: white;
+                padding: 15px;
+                border-radius: 10px;
+                z-index: 999;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                width: 80%;
+                max-width: 300px;
+            }
+            
+            .slider-container {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+            }
+            
+            .slider-container label {
+                flex: 0 0 60px;
+            }
+            
+            .slider-container input {
+                flex: 1;
+                margin: 0 10px;
+            }
+            
+            .slider-container span {
+                flex: 0 0 40px;
+                text-align: right;
+            }
+            
+            .touch-indicator {
+                position: fixed;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                border: 2px solid white;
+                background-color: rgba(76, 195, 217, 0.5);
+                transform: translate(-50%, -50%);
+                pointer-events: none;
+                z-index: 9999;
+                opacity: 0;
+                transition: opacity 0.2s;
+            }
+            
+            .notification {
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background-color: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 15px 20px;
+                border-radius: 5px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                z-index: 999999;
+                transition: opacity 0.5s;
+            }
+            
+            .toast {
+                position: fixed;
+                bottom: 80px;
+                left: 50%;
+                transform: translateX(-50%);
+                background-color: rgba(0, 0, 0, 0.7);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 20px;
+                z-index: 9999;
+                transition: opacity 0.5s;
+            }
+            
+            #instructions {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.8);
+                color: white;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                padding: 20px;
+                text-align: center;
+            }
+            
+            #instructions h2 {
+                margin-bottom: 20px;
+                color: #4CC3D9;
+            }
+            
+            #instructions ul {
+                list-style-type: none;
+                padding: 0;
+                margin-bottom: 30px;
+                text-align: left;
+                max-width: 300px;
+            }
+            
+            #instructions li {
+                margin-bottom: 15px;
+                display: flex;
+                align-items: center;
+            }
+            
+            #instructions li:before {
+                content: "•";
+                margin-right: 10px;
+                color: #4CC3D9;
+            }
+            
+            #start-btn {
+                background-color: #4CC3D9;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 5px;
+                font-size: 16px;
+                cursor: pointer;
+                font-weight: bold;
+            }
+            
+            .reset-btn {
+                background-color: #4CC3D9;
+                color: white;
+                border: none;
+                padding: 10px 0;
+                border-radius: 5px;
+                font-size: 16px;
+                cursor: pointer;
+                width: 100%;
+                margin-top: 5px;
+            }
+            
+            #auto-start-message {
+                margin-top: 20px;
+                font-size: 14px;
+                opacity: 0.8;
+            }
+            
+            #countdown {
+                font-weight: bold;
+                color: #4CC3D9;
+            }
+            
+            #enter-ar {
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background-color: #4CC3D9;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 5px;
+                font-size: 16px;
+                cursor: pointer;
+                font-weight: bold;
+                z-index: 999;
+            }
+            
+            body {
+                margin: 0;
+                overflow: hidden;
+                background-color: transparent !important;
+            }
+            .a-canvas {
+                background-color: transparent !important;
+            }
+        </style>
+    </head>
+
+    <body style="margin: 0; overflow: hidden;">
+        <!-- Debug panel for development - hidden by default -->
+        <div id="debug-panel">
+            <div>Waiting for GPS...</div>
+        </div>
+        
+        <!-- Instructions overlay -->
+        <div id="instructions">
+            <h2>WebXR AR Experience</h2>
+            <ul>
+                <li>Press "Start AR" to begin the experience</li>
+                <li>The object will appear in front of you</li>
+                <li>Tap anywhere to place the object</li>
+                <li>Use the sliders to adjust height and scale</li>
+            </ul>
+            <button id="start-btn">Start Experience</button>
+            <div id="auto-start-message">Starting in <span id="countdown">5</span>...</div>
+        </div>
+        
+        <!-- Control panel -->
+        <div class="control-panel" style="display: none;">
+            <div class="slider-container">
+                <label>Height:</label>
+                <input type="range" id="height-slider" min="-1" max="3" step="0.1" value="1.5">
+                <span id="height-value">1.5m</span>
+            </div>
+            <div class="slider-container">
+                <label>Scale:</label>
+                <input type="range" id="scale-slider" min="0.1" max="5" step="0.1" value="1">
+                <span id="scale-value">1x</span>
+            </div>
+            <button class="reset-btn" id="reset-btn">Reset Position</button>
+        </div>
+        
+        <!-- Enter AR button (shown after instructions) -->
+        <button id="enter-ar" style="display: none;">Start AR</button>
+        
+        <a-scene 
+            vr-mode-ui="enabled: false"
+            arjs='sourceType: webcam; 
+                  videoTexture: true; 
+                  debugUIEnabled: false;
+                  gpsMinDistance: 1;
+                  gpsTimeInterval: 100;
+                  maxDistance: 100;'
+            renderer='antialias: true; 
+             alpha: true;'
+            embedded>
+            
+            <!-- Assets -->
+            <a-assets>
+                <a-asset-item id="object-model" src="assets/asset.glb"></a-asset-item>
+            </a-assets>
+            
+            <!-- Camera with GPS -->
+            <a-camera 
+                gps-camera="simulateLatitude: 26.222713; simulateLongitude: -98.21122;"
+                rotation-reader>
+            </a-camera>
+
+            <!-- Main AR object with GPS position -->
+            <a-entity
+                id="ar-object"
+                look-at="[gps-camera]"
+                animation-mixer="loop: repeat"
+                gltf-model="#object-model"
+                scale="1 1 1"
+                gps-entity-place="latitude: 26.222713; longitude: -98.21122; static: true;"
+                position="0 1.5 0"
+                rotation="0 0 0"
+                visible="true">
+            </a-entity>
+            
+            <!-- Environment lighting -->
+            <a-entity light="type: ambient; intensity: 0.5;"></a-entity>
+            <a-entity light="type: directional; intensity: 0.8; castShadow: true;" position="1 1 1"></a-entity>
+            
+        </a-scene>
+        
+        <div id="overlay"></div>
+        
+        <script>
+            // Auto-hide instructions after 5 seconds
+            let countdownValue = 5;
+            const countdownElement = document.getElementById('countdown');
+            const autoStartMessage = document.getElementById('auto-start-message');
+            const instructions = document.getElementById('instructions');
+            const controlPanel = document.querySelector('.control-panel');
+            const enterARButton = document.getElementById('enter-ar');
+            const startBtn = document.getElementById('start-btn');
+
+            const countdownInterval = setInterval(() => {
+                countdownValue--;
+                if (countdownElement) {
+                    countdownElement.textContent = countdownValue;
+                }
+                
+                if (countdownValue <= 0) {
+                    clearInterval(countdownInterval);
+                    
+                    if (instructions) {
+                        instructions.style.display = 'none';
+                    }
+                    if (enterARButton) {
+                        enterARButton.click(); // Auto-click the AR button
+                    }
+                }
+            }, 1000);
+            
+            // Start button
+            if (startBtn) {
+                startBtn.addEventListener('click', () => {
+                    if (instructions) {
+                        instructions.style.display = 'none';
+                    }
+                    if (enterARButton) {
+                        enterARButton.style.display = 'block';
+                    }
+                    clearInterval(countdownInterval);
+                });
+            }
+            
+            // Enter AR button
+            if (enterARButton) {
+                enterARButton.addEventListener('click', () => {
+                    const scene = document.querySelector('a-scene');
+                    if (scene) {
+                        scene.enterAR();
+                        enterARButton.style.display = 'none';
+                        if (controlPanel) {
+                            controlPanel.style.display = 'flex';
+                        }
+                    }
+                });
+            }
+            
+            // Update debug panel with GPS info
+            if (navigator.geolocation) {
+                const debugPanel = document.getElementById('debug-panel');
+                
+                navigator.geolocation.watchPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        const accuracy = position.coords.accuracy;
+                        
+                        debugPanel.innerHTML = `
+                            <div>Lat: ${lat.toFixed(6)}</div>
+                            <div>Lon: ${lon.toFixed(6)}</div>
+                            <div>Accuracy: ${accuracy.toFixed(1)}m</div>
+                        `;
+                    },
+                    (error) => {
+                        debugPanel.innerHTML = `<div>GPS Error: ${error.message}</div>`;
+                    },
+                    { enableHighAccuracy: true }
+                );
+            }
+            
+            // Height slider
+            const heightSlider = document.getElementById('height-slider');
+            const heightValue = document.getElementById('height-value');
+            
+            if (heightSlider && heightValue) {
+                heightSlider.addEventListener('input', () => {
+                    const height = parseFloat(heightSlider.value);
+                    heightValue.textContent = `${height.toFixed(1)}m`;
+                    
+                    const arObject = document.getElementById('ar-object');
+                    if (arObject) {
+                        const position = arObject.getAttribute('position');
+                        position.y = height;
+                        arObject.setAttribute('position', position);
+                    }
+                });
+            }
+            
+            // Scale slider
+            const scaleSlider = document.getElementById('scale-slider');
+            const scaleValue = document.getElementById('scale-value');
+            
+            if (scaleSlider && scaleValue) {
+                scaleSlider.addEventListener('input', () => {
+                    const scale = parseFloat(scaleSlider.value);
+                    scaleValue.textContent = `${scale.toFixed(1)}x`;
+                    
+                    const arObject = document.getElementById('ar-object');
+                    if (arObject) {
+                        arObject.setAttribute('scale', `${scale} ${scale} ${scale}`);
+                    }
+                });
+            }
+            
+            // Reset button
+            const resetBtn = document.getElementById('reset-btn');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', () => {
+                    const scene = document.querySelector('a-scene');
+                    if (scene && scene.components['touch-placement']) {
+                        scene.components['touch-placement'].placeObjectInFront();
+                    }
+                });
+            }
+            
+            // Check WebXR support
+            if (navigator.xr) {
+                navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+                    if (!supported) {
+                        const toast = document.createElement('div');
+                        toast.className = 'toast';
+                        toast.textContent = 'WebXR AR not supported on this device';
+                        toast.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+                        document.body.appendChild(toast);
+                        
+                        setTimeout(() => {
+                            toast.style.opacity = '0';
+                            setTimeout(() => {
+                                document.body.removeChild(toast);
+                            }, 500);
+                        }, 3000);
+                    }
+                });
+            } else {
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = 'WebXR not supported in this browser';
+                toast.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => {
+                        document.body.removeChild(toast);
+                    }, 500);
+                }, 3000);
+            }
+            
+            // Add debug logging
+            document.querySelector('a-scene').addEventListener('enter-vr', function() {
+                console.log('Entering VR/AR mode');
+                console.log('Renderer:', this.renderer);
+                console.log('Is transparent:', this.renderer.getClearAlpha() === 0);
+                
+                // Add session info logging
+                const session = this.xrSession;
+                if (session) {
+                    console.log('XR Session:', session);
+                    console.log('Environment Blend Mode:', session.environmentBlendMode);
+                    console.log('Visibility State:', session.visibilityState);
+                    
+                    // Log available reference spaces
+                    session.requestReferenceSpace('local').then(space => {
+                        console.log('Local space available:', space);
+                    }).catch(err => console.error('Local space error:', err));
+                    
+                    session.requestReferenceSpace('viewer').then(space => {
+                        console.log('Viewer space available:', space);
+                    }).catch(err => console.error('Viewer space error:', err));
+                }
+            });
+            
+            // Add camera state monitoring
+            document.querySelector('a-scene').addEventListener('enter-vr', function() {
+                const stateText = document.querySelector('#camera-state');
+                if (this.is('ar-mode')) {
+                    stateText.setAttribute('text', 'value', 'AR Mode Active');
+                    stateText.setAttribute('text', 'color', 'green');
+                } else {
+                    stateText.setAttribute('text', 'value', 'Not in AR Mode');
+                    stateText.setAttribute('text', 'color', 'red');
+                }
+            });
+            
+            // Auto-enter AR when the scene is loaded
+            document.addEventListener('DOMContentLoaded', function() {
+                // Hide instructions immediately
+                if (instructions) {
+                    instructions.style.display = 'none';
+                }
+                
+                // Clear the countdown
+                clearInterval(countdownInterval);
+            });
+
+            window.onload = function() {
+                // Force AR mode on page load
+                const scene = document.querySelector('a-scene');
+                if (scene.hasLoaded) {
+                    scene.enterAR();
+                } else {
+                    scene.addEventListener('loaded', () => {
+                        scene.enterAR();
+                    });
+                }
+            };
+
+            // Force resize on load and orientation change
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    window.dispatchEvent(new Event('resize'));
+                }, 1000);
+            });
+            
+            window.addEventListener('orientationchange', () => {
+                setTimeout(() => {
+                    window.dispatchEvent(new Event('resize'));
+                }, 200);
+            });
+
+            // GPS distance checking
+            window.addEventListener('gps-camera-update-position', e => {
+                const distance = document.querySelector('[gps-entity-place]').getAttribute('distance');
+                console.log('Distance to GPS location:', distance);
+                
+                // Update debug panel with more info
+                const debugPanel = document.getElementById('debug-panel');
+                if (debugPanel) {
+                    debugPanel.innerHTML = `
+                        <div>Current GPS:</div>
+                        <div>Lat: ${e.detail.position.latitude.toFixed(6)}</div>
+                        <div>Lon: ${e.detail.position.longitude.toFixed(6)}</div>
+                        <div>Distance: ${distance ? distance.toFixed(2) + 'm' : 'calculating...'}</div>
+                        <div>Heading: ${e.detail.position.heading ? e.detail.position.heading.toFixed(2) + '°' : 'N/A'}</div>
+                    `;
+                }
+
+                // Stabilize object position if it's close
+                const arObject = document.querySelector('#ar-object');
+                if (distance && distance < 100) {  // Within 100 meters
+                    arObject.setAttribute('visible', true);
+                } else {
+                    arObject.setAttribute('visible', false);
+                }
+            });
+
+            // Handle GPS errors
+            window.addEventListener('gps-camera-update-position-error', e => {
+                console.error('GPS error:', e.detail.message);
+                const debugPanel = document.getElementById('debug-panel');
+                if (debugPanel) {
+                    debugPanel.innerHTML = `<div>GPS Error: ${e.detail.message}</div>`;
+                }
+            });
+
+            AFRAME.registerComponent('gps-position-stabilizer', {
+                init: function() {
+                    this.initialized = false;
+                    
+                    this.el.addEventListener('gps-camera-update-position', (e) => {
+                        if (!this.initialized) {
+                            this.initialized = true;
+                            this.el.setAttribute('position', {
+                                x: 0,
+                                y: 1.5,
+                                z: -5
+                            });
+                            this.el.setAttribute('visible', true);
+                        }
+                    });
+                }
+            });
+
+            // Add this right after your existing script tag
+            window.addEventListener('load', function() {
+                console.log("Testing GPS functionality...");
+                
+                if ("geolocation" in navigator) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        console.log("GPS Test Success:", {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        });
+                        
+                        // Update debug panel with initial position
+                        const debugPanel = document.getElementById('debug-panel');
+                        if (debugPanel) {
+                            debugPanel.innerHTML = `
+                                <div>Initial GPS:</div>
+                                <div>Lat: ${position.coords.latitude.toFixed(6)}</div>
+                                <div>Lon: ${position.coords.longitude.toFixed(6)}</div>
+                                <div>Accuracy: ${position.coords.accuracy.toFixed(2)}m</div>
+                            `;
+                        }
+                    }, function(error) {
+                        console.error("GPS Test Error:", error.message);
+                        const debugPanel = document.getElementById('debug-panel');
+                        if (debugPanel) {
+                            debugPanel.innerHTML = `<div>GPS Error: ${error.message}</div>`;
+                        }
+                    }, {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    });
+                } else {
+                    console.error("GPS Test Failed: Geolocation not supported");
+                }
+            });
+        </script>
+    </body>
+</html>
