@@ -21,6 +21,9 @@
     "cleanup": "node cleanup.js",
     "debug": "node debug/server.js"
   },
+  "engines": {
+    "node": ">=18.x"
+  },
   "description": "## Overview This project provides a gallery of AR (Augmented Reality) experiences using A-Frame and WebXR.",
   "directories": {
     "doc": "docs"

@@ -11,10 +11,10 @@ const app = express();
 const debugEnabled = process.env.DEBUG === 'true';
 let debugModeActive = debugEnabled;
 
-// Get port from port.js if it exists, otherwise use default
-let port = 8080;
+// Get port from environment variable for Heroku compatibility, fallback to port.js or default
+let port = process.env.PORT || 8080;
 try {
-    if (fs.existsSync('./port.js')) {
+    if (fs.existsSync('./port.js') && !process.env.PORT) {
         port = require('./port.js');
     }
 } catch (error) {
@@ -261,24 +261,38 @@ ensureMetadataTemplates();
 // Modify the SSL configuration to be optional
 let server;
 try {
-    const sslOptions = {
-        key: fs.readFileSync(path.join(__dirname, 'cert', 'key.pem')),
-        cert: fs.readFileSync(path.join(__dirname, 'cert', 'cert.pem'))
-    };
-    server = https.createServer(sslOptions, app);
-    console.log('HTTPS server created successfully');
+    // Use HTTP server when on Heroku (PORT env variable is set)
+    if (process.env.PORT) {
+        console.log('Running on Heroku, using HTTP server');
+        server = require('http').createServer(app);
+    } else {
+        const sslOptions = {
+            key: fs.readFileSync(path.join(__dirname, 'cert', 'key.pem')),
+            cert: fs.readFileSync(path.join(__dirname, 'cert', 'cert.pem'))
+        };
+        server = https.createServer(sslOptions, app);
+        console.log('HTTPS server created successfully');
+    }
 } catch (error) {
-    console.log('SSL certificates not found, falling back to HTTP');
+    console.log('SSL certificates not found or error creating secure server, falling back to HTTP');
     server = require('http').createServer(app);
 }
 
 // Start the server with better error handling
 try {
     const localIP = getLocalIP();
+    const isHeroku = process.env.PORT ? true : false;
+    
+    // On Heroku, we bind to all interfaces (0.0.0.0)
     server.listen(port, '0.0.0.0', () => {
         const protocol = server instanceof https.Server ? 'https' : 'http';
         console.log(`\nServer running at ${protocol}://localhost:${port}`);
-        console.log(`Local network access: ${protocol}://${localIP}:${port}`);
+        
+        if (!isHeroku) {
+            console.log(`Local network access: ${protocol}://${localIP}:${port}`);
+        } else {
+            console.log('Running on Heroku deployment');
+        }
         
         if (debugEnabled) {
             console.log('\nDebug mode enabled:');

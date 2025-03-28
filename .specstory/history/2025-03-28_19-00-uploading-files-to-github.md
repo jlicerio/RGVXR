@@ -47,6 +47,233 @@ PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR>
 
 ---
 
+Great! Git is already set up in your project. Let's first check if you have a remote repository configured.
+
+---
+
+```bash
+git remote -v
+```
+
+```
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR>
+
+```
+
+---
+
+You don't have a remote repository set up yet. Here's what we need to do to upload your project to GitHub:
+
+1. Create a new repository on GitHub
+2. Add the remote repository to your local Git
+3. Commit your changes
+4. Push to GitHub
+
+First, let's add any untracked files you want to include and commit the changes:
+
+---
+
+```bash
+git add .
+```
+
+```
+warning: in the working copy of '.specstory/.what-is-this.md', LF will be replaced by CRLF the next time 
+Git touches it
+warning: in the working copy of '.specstory/history/2025-03-28_19-00-uploading-files-to-github.md', LF wi
+ll be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'debug/editor/templatestest/ar object/assets/asset.gltf', LF will be repl
+aced by CRLF the next time Git touches it
+ CRLF the next time Git touches it
+warning: in the working copy of 'debug/editor/webxr-template/metadata.json', LF will be replaced by CRLF 
+the next time Git touches it
+warning: in the working copy of 'tatus', LF will be replaced by CRLF the next time Git touches it
+
+
+```
+
+---
+
+Now let's commit the changes:
+
+---
+
+```bash
+git commit -m "Initial commit"
+```
+
+```
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR> git commit -m "Initial commit"
+[main 1c70637] Initial commit
+ 32 files changed, 1721 insertions(+), 65 deletions(-)
+ delete mode 100644 .specstory/history/2025-03-28_19-00-untitled.md
+ create mode 100644 .specstory/history/2025-03-28_19-00-uploading-files-to-github.md
+ create mode 100644 debug/editor/templatestest/advanced/metadata.json
+ create mode 100644 debug/editor/templatestest/ar object/assets/asset.gltf
+ create mode 100644 debug/editor/templatestest/ar object/assets/marker.patt
+ create mode 100644 debug/editor/templatestest/ar object/index.html
+ create mode 100644 debug/editor/templatestest/ar object/metadata.json
+ create mode 100644 debug/editor/templatestest/ar object/package.json
+ create mode 100644 debug/editor/templatestest/ar object/server.js
+ create mode 100644 debug/editor/templatestest/ar stakes/assets/asset.glb
+ create mode 100644 debug/editor/templatestest/ar stakes/assets/marker.patt
+ create mode 100644 debug/editor/templatestest/ar stakes/index.html
+ create mode 100644 debug/editor/templatestest/ar stakes/metadata.json
+ create mode 100644 debug/editor/templatestest/ar stakes/package.json
+ create mode 100644 debug/editor/templatestest/ar stakes/server.js
+ create mode 100644 debug/editor/templatestest/ar-project-template.html
+ create mode 100644 debug/editor/templatestest/ar-template.html
+ create mode 100644 debug/editor/templatestest/basic/metadata.json
+ create mode 100644 debug/editor/templatestest/gps-ar/index.html
+ create mode 100644 debug/editor/templatestest/gps/metadata.json
+ create mode 100644 debug/editor/templatestest/webxr-advanced-demo/metadata.json
+ create mode 100644 debug/editor/templatestest/webxr-advanced/metadata.json
+ create mode 100644 debug/editor/templatestest/webxr-basic-demo/metadata.json
+ create mode 100644 debug/editor/templatestest/webxr-basic/metadata.json
+ create mode 100644 debug/editor/templatestest/webxr-gps-demo/metadata.json
+ create mode 100644 debug/editor/templatestest/webxr-gps/metadata.json
+ create mode 100644 debug/editor/webxr-template/index.html
+ create mode 100644 debug/editor/webxr-template/metadata.json
+ create mode 100644 tatus
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR>
+```
+
+---
+
+Now you need to create a GitHub repository. Let's check if you're already authenticated with GitHub:
+
+---
+
+```bash
+git config user.name
+```
+
+```
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR> git config user.name
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR>
+```
+
+---
+
+Let's set up your Git user information:
+
+---
+
+Cancelled
+
+---
+
+_**User**_
+
+jlicerio
+
+---
+
+_**Assistant**_
+
+I'll set your Git username as "jlicerio":
+
+---
+
+```bash
+git config --global user.name "jlicerio"
+```
+
+```
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR> git config --global user.name "jlicerio"
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR>
+```
+
+---
+
+Now, let's set your email address for Git:
+
+---
+
+Cancelled
+
+---
+
+_**User**_
+
+juanclicerio@hotmail.com
+
+---
+
+_**Assistant**_
+
+I'll set your Git email as "juanclicerio@hotmail.com":
+
+---
+
+```bash
+git config --global user.email "juanclicerio@hotmail.com"
+```
+
+```
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR> git config --global user.email "juanclicerio@hotmail.com"
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR>
+```
+
+---
+
+Now that Git is configured with your user information, we need to create a new repository on GitHub and link it to your local repository.
+
+You'll need to create a new repository on GitHub by visiting https://github.com/new in your web browser. Choose a name for your repository (for example, "RGVXR") and create it without initializing with a README or any other files.
+
+After creating the repository, GitHub will show you commands to link your existing repository. Let me know the URL of your new GitHub repository (it should look like https://github.com/jlicerio/RGVXR.git), and we can proceed with connecting and pushing your local repository.
+
+---
+
+_**User**_
+
+ok RGVXR
+
+---
+
+_**Assistant**_
+
+I'll set up your local repository to connect to a GitHub repository named "RGVXR":
+
+---
+
+```bash
+git remote add origin https://github.com/jlicerio/RGVXR.git
+```
+
+```
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR> git remote add origin https://github.com/jlicerio/RGVXR.git 
+error: remote origin already exists.
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR>
+```
+
+---
+
+It looks like the remote "origin" already exists. Let's check what it's set to:
+
+---
+
+```bash
+git remote -v
+```
+
+```
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR> git remote -v
+origin  https://github.com/jlicerio/RGVXR.git (fetch)
+PS C:\Users\juanc\OneDrive\Desktop\RP\RGVXR>
+
+```
+
+---
+
+The remote is already set correctly to your GitHub repository. Now, let's push your code to GitHub:
+
+---
+
+Cancelled
+
+---
+
 
 
 ---
