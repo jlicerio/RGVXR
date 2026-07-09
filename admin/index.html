@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CarrouselXR — Admin</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; }
+        .container { max-width: 800px; margin: 0 auto; padding: 24px; }
+        h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+        .subtitle { opacity: 0.5; font-size: 13px; margin-bottom: 32px; }
+        
+        .tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .tab { padding: 10px 20px; cursor: pointer; font-size: 14px; border: none; background: none; color: rgba(255,255,255,0.5); border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .tab.active { color: #fff; border-bottom-color: #fff; }
+        
+        .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+        .card h3 { font-size: 16px; margin-bottom: 4px; }
+        .card .meta { font-size: 12px; opacity: 0.5; margin-bottom: 8px; }
+        .card .actions { display: flex; gap: 8px; margin-top: 12px; }
+        
+        .btn { padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; }
+        .btn-primary { background: #fff; color: #000; }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-success { background: #22c55e; color: #000; }
+        .btn-danger { background: rgba(239,68,68,0.2); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+        .btn-ghost { background: rgba(255,255,255,0.08); color: #fff; }
+        .btn-ghost:hover { background: rgba(255,255,255,0.15); }
+        
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; margin-bottom: 4px; opacity: 0.7; }
+        .form-group input, .form-group textarea, .form-group select { 
+            width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); 
+            background: rgba(255,255,255,0.05); color: #fff; font-size: 14px; font-family: inherit;
+        }
+        .form-group textarea { min-height: 100px; resize: vertical; }
+        
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 500; }
+        .badge-review { background: rgba(251,191,36,0.2); color: #fbbf24; }
+        .badge-published { background: rgba(34,197,94,0.2); color: #22c55e; }
+        .badge-rejected { background: rgba(239,68,68,0.2); color: #ef4444; }
+        .badge-draft { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); }
+        
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #22c55e; color: #000; padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 100; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { transform: translate(-50%, 20px); opacity: 0; } }
+        .empty { text-align: center; padding: 40px; opacity: 0.4; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>CarrouselXR Admin</h1>
+    <p class="subtitle">Manage AR projects, review submissions, configure connectors</p>
+    
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('review')">Review Queue</button>
+        <button class="tab" onclick="switchTab('submit')">New Submission</button>
+        <button class="tab" onclick="switchTab('published')">Published</button>
+        <button class="tab" onclick="switchTab('connectors')">Connectors</button>
+    </div>
+    
+    <!-- Review Queue -->
+    <div id="tab-review">
+        <div id="reviewList"><div class="empty">Loading review queue…</div></div>
+    </div>
+    
+    <!-- Submission Form -->
+    <div id="tab-submit" style="display:none">
+        <div class="card">
+            <h3>Submit New AR Project</h3>
+            <p style="opacity:0.5;font-size:13px;margin-bottom:16px">Projects go into review. You'll upload the .glb model separately after submission.</p>
+            
+            <div class="form-group"><label>Title *</label><input id="subTitle" placeholder="Carrizo Comecrudo Peyote Cactus"></div>
+            <div class="form-group"><label>Author *</label><input id="subAuthor" placeholder="Your Name / Organization"></div>
+            <div class="form-group"><label>Email</label><input id="subEmail" type="email" placeholder="you@example.com"></div>
+            <div class="form-group"><label>Description *</label><textarea id="subDesc" placeholder="Describe the cultural/historical significance of this AR experience…"></textarea></div>
+            <div class="form-group"><label>Technologies (comma-separated)</label><input id="subTech" value="model-viewer, WebXR" placeholder="model-viewer, WebXR, A-Frame"></div>
+            <div class="form-group">
+                <label>Unlock Method</label>
+                <select id="subUnlock">
+                    <option value="none">None — always available</option>
+                    <option value="gps">GPS Geo-Fence</option>
+                    <option value="image">Image Recognition (coming soon)</option>
+                </select>
+            </div>
+            <div id="gpsFields" style="display:none">
+                <div class="form-group"><label>Latitude</label><input id="subLat" type="number" step="any" placeholder="26.3798"></div>
+                <div class="form-group"><label>Longitude</label><input id="subLng" type="number" step="any" placeholder="-98.8203"></div>
+                <div class="form-group"><label>Radius (meters)</label><input id="subRadius" type="number" value="2000"></div>
+                <div class="form-group"><label>Location Name</label><input id="subLocName" placeholder="Rio Grande City, TX"></div>
+            </div>
+            <div class="form-group"><label>License</label><input id="subLicense" value="CC-BY-4.0" placeholder="CC-BY-4.0"></div>
+            
+            <button class="btn btn-primary" onclick="submitProject()" style="width:100%">Submit for Review</button>
+        </div>
+        <div id="submitResult"></div>
+    </div>
+    
+    <!-- Published -->
+    <div id="tab-published" style="display:none">
+        <div id="publishedList"><div class="empty">Loading published projects…</div></div>
+    </div>
+    
+    <!-- Connectors -->
+    <div id="tab-connectors" style="display:none">
+        <div id="connectorList"><div class="empty">Loading connectors…</div></div>
+    </div>
+</div>
+
+<script>
+    const BASE = (function() {
+        const p = window.location.pathname;
+        const m = p.match(/^(\/.+?)\/(admin\/|index\.html)?$/);
+        return m ? m[1] : '';
+    })();
+    
+    function switchTab(name) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('[id^="tab-"]').forEach(d => d.style.display = 'none');
+        document.querySelector(`.tab:nth-${['review','submit','published','connectors'].indexOf(name)+1}`)?.classList.add('active');
+        const el = document.getElementById('tab-' + name);
+        if (el) el.style.display = '';
+        
+        if (name === 'review') loadReview();
+        if (name === 'published') loadPublished();
+        if (name === 'connectors') loadConnectors();
+    }
+    
+    // GPS unlock toggle
+    document.getElementById('subUnlock').addEventListener('change', function() {
+        document.getElementById('gpsFields').style.display = this.value === 'gps' ? '' : 'none';
+    });
+    
+    async function submitProject() {
+        const data = {
+            title: document.getElementById('subTitle').value,
+            author: document.getElementById('subAuthor').value,
+            email: document.getElementById('subEmail').value,
+            description: document.getElementById('subDesc').value,
+            technologies: document.getElementById('subTech').value.split(',').map(s => s.trim()).filter(Boolean),
+            license: document.getElementById('subLicense').value,
+            unlockMethods: {}
+        };
+        
+        if (!data.title || !data.author || !data.description) {
+            alert('Title, Author, and Description are required.');
+            return;
+        }
+        
+        if (document.getElementById('subUnlock').value === 'gps') {
+            data.unlockMethods.gps = {
+                lat: parseFloat(document.getElementById('subLat').value),
+                lng: parseFloat(document.getElementById('subLng').value),
+                radius: parseInt(document.getElementById('subRadius').value) || 2000,
+                name: document.getElementById('subLocName').value
+            };
+        }
+        
+        try {
+            const resp = await fetch(BASE + '/api/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await resp.json();
+            
+            if (resp.ok) {
+                document.getElementById('submitResult').innerHTML = `
+                    <div class="card" style="border-color:#22c55e;margin-top:16px">
+                        <h3>✓ Submitted!</h3>
+                        <p style="font-size:13px;opacity:0.7">Project "${result.project.title}" is now in review.</p>
+                        <p style="font-size:12px;opacity:0.5;margin-top:8px">Next: upload your .glb model to complete the submission.</p>
+                    </div>`;
+                document.getElementById('subTitle').value = '';
+                document.getElementById('subDesc').value = '';
+                document.getElementById('subAuthor').value = '';
+            } else {
+                toast('Error: ' + (result.error || 'Submission failed'), 'error');
+            }
+        } catch(e) {
+            toast('Network error: ' + e.message, 'error');
+        }
+    }
+    
+    async function loadReview() {
+        const el = document.getElementById('reviewList');
+        try {
+            const resp = await fetch(BASE + '/api/review');
+            const projects = await resp.json();
+            if (!projects.length) { el.innerHTML = '<div class="empty">No projects awaiting review</div>'; return; }
+            
+            el.innerHTML = projects.map(p => `
+                <div class="card">
+                    <h3>${esc(p.title)} <span class="badge badge-${p.status}">${p.status}</span></h3>
+                    <div class="meta">by ${esc(p.author)} · ${p.submitted ? new Date(p.submitted).toLocaleDateString() : 'unknown date'}</div>
+                    <p style="font-size:13px;opacity:0.7">${esc((p.description||'').substring(0,200))}</p>
+                    <div class="actions">
+                        <button class="btn btn-success" onclick="reviewAction('${p.id}','approve')">Approve</button>
+                        <button class="btn btn-danger" onclick="reviewAction('${p.id}','reject')">Reject</button>
+                    </div>
+                </div>
+            `).join('');
+        } catch(e) { el.innerHTML = '<div class="empty">Failed to load: ' + e.message + '</div>'; }
+    }
+    
+    async function reviewAction(id, action) {
+        try {
+            const resp = await fetch(BASE + '/api/review/' + id, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action })
+            });
+            const result = await resp.json();
+            if (resp.ok) {
+                toast(`Project ${action}d`);
+                loadReview();
+            } else {
+                toast('Error: ' + result.error, 'error');
+            }
+        } catch(e) { toast('Error: ' + e.message, 'error'); }
+    }
+    
+    async function loadPublished() {
+        const el = document.getElementById('publishedList');
+        try {
+            const resp = await fetch(BASE + '/api/projects?status=published');
+            const projects = await resp.json();
+            if (!projects.length) { el.innerHTML = '<div class="empty">No published projects</div>'; return; }
+            
+            el.innerHTML = projects.map(p => `
+                <div class="card">
+                    <h3>${esc(p.title)} <span class="badge badge-published">published</span></h3>
+                    <div class="meta">by ${esc(p.author)} · ${p.unlockMethods && Object.keys(p.unlockMethods).length ? '🔒 geo-fenced' : '🌐 always available'}</div>
+                    <p style="font-size:13px;opacity:0.7">${esc((p.description||'').substring(0,150))}</p>
+                </div>
+            `).join('');
+        } catch(e) { el.innerHTML = '<div class="empty">Failed to load: ' + e.message + '</div>'; }
+    }
+    
+    async function loadConnectors() {
+        const el = document.getElementById('connectorList');
+        try {
+            const resp = await fetch(BASE + '/api/connectors');
+            const connectors = await resp.json();
+            el.innerHTML = connectors.map(c => `
+                <div class="card">
+                    <h3>${c.icon} ${esc(c.name)}</h3>
+                    <div class="meta">${c.ready ? '🟢 active' : '🔴 ' + c.statusMessage}</div>
+                    <p style="font-size:13px;opacity:0.7">${esc(c.description)}</p>
+                </div>
+            `).join('');
+        } catch(e) { el.innerHTML = '<div class="empty">Failed to load connectors</div>'; }
+    }
+    
+    function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+    function toast(msg, type) {
+        const t = document.createElement('div'); t.className = 'toast';
+        if (type === 'error') t.style.background = '#ef4444';
+        t.textContent = msg; document.body.appendChild(t);
+        setTimeout(() => t.remove(), 3000);
+    }
+    
+    // Load initial tab
+    loadReview();
+</script>
+</body>
+</html>

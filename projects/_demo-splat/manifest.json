@@ -1,0 +1,7 @@
+{
+  "id": "_demo-splat",
+  "title": "Demo Splat",
+  "status": "published",
+  "visibility": "public",
+  "assets": { "splat": "demo.splat" }
+}

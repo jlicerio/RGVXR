@@ -1,0 +1,139 @@
+# RGVXR Platform Configuration
+# Open-source modular AR gallery platform
+# https://github.com/jlicerio/RGVXR
+
+# ============================================================
+# Platform Settings
+# ============================================================
+platform:
+  name: "CarrouselXR"
+  version: "2.0.0"
+  description: "Modular AR experience platform — geo-fenced, marker-based, image-recognition, and Gaussian splat AR"
+  license: "MIT"
+  repository: "https://github.com/jlicerio/RGVXR"
+
+# ============================================================
+# Server Settings
+# ============================================================
+server:
+  port: 8080
+  host: "0.0.0.0"
+
+# ============================================================
+# Module / Connector Registry
+# Each connector provides an unlock method for projects.
+# Connectors are loaded by the server (for API checks) AND
+# by the client (for UI status display).
+# ============================================================
+connectors:
+  # GPS geo-fence: unlocks projects when user is within radius
+  gps:
+    enabled: true
+    name: "GPS Geo-Fence"
+    description: "Unlock projects based on user's GPS location and project radius"
+    icon: "📍"
+    # Client-side: uses browser Geolocation API
+    # Server-side: validates lat/lng/radius in manifest
+    config:
+      defaultRadius: 2000  # meters, used if project doesn't specify
+      highAccuracy: false
+      timeout: 10000
+      maxAge: 300000
+
+  # Always unlocked — fallback connector, projects with no unlock method
+  always:
+    enabled: true
+    name: "Always Available"
+    description: "Projects with no geo/image/marker restrictions"
+    icon: "🌐"
+
+  # Image recognition connector (MindAR-based)
+  image-recognition:
+    enabled: true
+    name: "Image Recognition"
+    description: "Unlock projects by pointing camera at a specific image"
+    icon: "📷"
+    config:
+      library: "mind-ar"
+      version: "1.2.0"
+
+  # Marker-based AR connector (AR.js, legacy)
+  marker-ar:
+    enabled: false
+    name: "Marker-Based AR"
+    description: "Unlock projects using printed AR markers"
+    icon: "🔲"
+    config:
+      library: "ar-js"
+      patternRatio: 0.5
+
+  # Gaussian Splat connector — .spz volumetric rendering
+  splat:
+    enabled: true
+    name: "Gaussian Splatting"
+    description: "Volumetric 3D Gaussian Splat rendering (.spz, .ply)"
+    icon: "✨"
+    config:
+      renderer: "three.js"
+      splatLibrary: "@mkkellogg/gaussian-splats-3d"
+      splatLibraryVersion: "0.3.2"
+      supportsFormats: [".spz", ".ply", ".splat", ".ksplat"]
+      defaultViewer: "shared/splat-viewer.html"
+
+  # WebXR hit-test connector
+  webxr:
+    enabled: false
+    name: "WebXR Surface Placement"
+    description: "Place models on real-world surfaces via WebXR hit-test"
+    icon: "🥽"
+
+# ============================================================
+# Project Defaults
+# ============================================================
+projects:
+  # Directory where project folders live
+  path: "./projects"
+  # Default manifest values
+  defaults:
+    status: "draft"        # draft | review | published | rejected
+    visibility: "public"   # public | unlisted | private
+    unlockMethods: {}      # filled by connectors
+    license: "CC-BY-4.0"
+
+# ============================================================
+# Review / Submission Settings
+# ============================================================
+submissions:
+  enabled: true
+  # Where uploads go before review
+  stagingPath: "./projects/_staging"
+  # Required fields for submission
+  requiredFields:
+    - title
+    - description
+    - author
+  # Auto-publish after review? (false = admin must manually publish)
+  autoPublish: false
+
+# ============================================================
+# UI / Gallery Settings
+# ============================================================
+gallery:
+  title: "RGVXR — AR Gallery"
+  autoRotate: true
+  autoRotateDelay: 2000
+  environmentImage: "neutral"
+  showDemoMode: true       # Allow users to bypass geo-fencing
+  showSubmissionLink: true  # Show "Submit a project" link
+  defaultViewer: "model-viewer"  # model-viewer | aframe | threejs
+
+# ============================================================
+# Viewer Settings (model-viewer defaults)
+# ============================================================
+viewer:
+  cameraOrbit: "0deg 72deg 100%"
+  minOrbit: "auto auto 40%"
+  maxOrbit: "auto auto 220%"
+  shadowIntensity: 0.7
+  exposure: 1.0
+  interpolationDecay: 180

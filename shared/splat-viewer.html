@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Splat Viewer | CarrouselXR</title>
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
+        "@sparkjsdev/spark": "https://sparkjs.dev/releases/spark/2.1.0/spark.module.js"
+    }
+}
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;height:100dvh;font-family:'Inter',-apple-system,sans-serif}
+canvas{display:block}
+.back-btn{position:fixed;top:16px;left:16px;z-index:10;background:rgba(10,10,10,.55);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);color:#fff;width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;text-decoration:none}
+.hint{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:12px;opacity:0.4;z-index:5;pointer-events:none;text-align:center}
+.loading{position:fixed;inset:0;z-index:50;background:#000;display:flex;align-items:center;justify-content:center;font-size:13px;opacity:0.5;transition:opacity 0.5s}
+.loading.done{opacity:0;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="loading" id="loading">Loading splat…</div>
+<a class="back-btn" href="javascript:history.back()">←</a>
+<div class="hint">SparkJS 2.1.0 · drag to orbit · scroll to zoom</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { SparkRenderer, SplatMesh } from '@sparkjsdev/spark';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a0a);
+const camera = new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.01,100);
+camera.position.set(0,0.5,2);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.target.set(0,0.3,0);
+
+const spark = new SparkRenderer({renderer});
+scene.add(spark);
+
+const params = new URLSearchParams(location.search);
+const splatUrl = params.get('src') || '../projects/_demo-splat/assets/SatsumaVase.splat';
+
+const splat = new SplatMesh({url: splatUrl, alpha: 1.0});
+scene.add(splat);
+
+// Simple ready check
+function waitForReady() {
+    if (splat.ready) {
+        const box = new THREE.Box3().setFromObject(splat);
+        const c = box.getCenter(new THREE.Vector3());
+        const s = box.getSize(new THREE.Vector3()).length();
+        controls.target.copy(c);
+        camera.position.set(c.x+s*0.6,c.y+s*0.3,c.z+s*0.8);
+        camera.lookAt(c);
+        document.getElementById('loading').classList.add('done');
+        return;
+    }
+    requestAnimationFrame(waitForReady);
+}
+waitForReady();
+
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene,camera); });
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script>
+</body>
+</html>

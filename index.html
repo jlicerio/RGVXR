@@ -1,719 +1,440 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src * 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; frame-src *; style-src * 'unsafe-inline';">
-    <title>AR Projects Gallery</title>
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
-    <script src="/js/audio-player.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title id="pageTitle">CarrouselXR — AR Gallery</title>
+    
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.2.0/model-viewer.min.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/xr-simulator.js"></script>
+    
     <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        
         :root {
-            --ui-bg-color: rgba(0, 0, 0, 0.85);
-            --text-color: #ffffff;
-            --accent-color: #ffffff;
-            --border-radius: 2px;
-            --transition-speed: 0.3s;
-            --spacing-sm: 8px;
-            --spacing-md: 16px;
-            --spacing-lg: 24px;
-            --font-size-sm: 14px;
-            --font-size-md: 16px;
-            --font-size-lg: 20px;
-            --font-size-xl: 24px;
-            --ui-bg-color-rgb: 17, 17, 17;  /* This is the RGB equivalent of #111111 */
+            --panel-bg: rgba(12,12,12,0.72);
+            --panel-border: rgba(255,255,255,0.07);
+            --text-primary: #fff;
+            --text-muted: rgba(255,255,255,0.5);
+            --accent: #fff;
         }
         
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #000;
+            color: var(--text-primary);
             overflow: hidden;
-            position: relative;
-            font-family: 'Inter', sans-serif;
-            color: var(--text-color);
-            background-color: #000;
+            height: 100dvh; width: 100vw;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
         }
         
-        /* Control bar */
-        .controls {
-            position: fixed;
-            bottom: var(--spacing-lg);
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-md);
-            padding: var(--spacing-md);
-            background: var(--ui-bg-color);
-            backdrop-filter: blur(10px);
-            border-radius: var(--border-radius);
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        model-viewer {
+            width: 100%; height: 100%;
+            --poster-color: #000;
+            --progress-bar-color: #fff;
+            --progress-bar-height: 2px;
+            transition: opacity 0.3s;
         }
-
-        .nav-button {
-            background: transparent;
-            border: none;
-            color: var(--text-color);
-            cursor: pointer;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all var(--transition-speed);
-            border-radius: 50%;
-        }
-
-        .nav-button:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .nav-button svg {
-            width: 24px;
-            height: 24px;
-            fill: currentColor;
-        }
-
-        .info-button {
-            background: transparent;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: var(--text-color);
-            cursor: pointer;
-            padding: var(--spacing-sm) var(--spacing-md);
-            border-radius: var(--border-radius);
-            transition: all var(--transition-speed);
-            font-size: var(--font-size-sm);
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-        }
-
-        .info-button:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .info-button svg {
-            width: 16px;
-            height: 16px;
-            fill: currentColor;
-        }
-
-        /* Project info panel */
-        .info-panel {
-            position: fixed;
-            top: 0;
-            right: -400px;
-            width: 350px;
-            height: 100%;
-            background: rgba(var(--ui-bg-color-rgb), 0.4);
-            backdrop-filter: blur(5px);
-            z-index: 1001;
-            transition: right var(--transition-speed);
-            padding: var(--spacing-lg);
-            box-sizing: border-box;
-            overflow-y: auto;
-        }
-
-        .info-panel.active {
-            right: 0;
-        }
-
-        .info-panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--spacing-lg);
-        }
-
-        .info-panel-title {
-            font-size: var(--font-size-lg);
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .close-button {
-            background: transparent;
-            border: none;
-            color: var(--text-color);
-            cursor: pointer;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-        }
-
-        .close-button:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .close-button svg {
-            width: 20px;
-            height: 20px;
-            fill: currentColor;
-        }
-
-        .info-section {
-            margin-bottom: var(--spacing-lg);
-        }
-
-        .info-section-title {
-            font-size: var(--font-size-sm);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.6);
-            margin-bottom: var(--spacing-sm);
-        }
-
-        .info-section-content {
-            font-size: var(--font-size-md);
-            line-height: 1.5;
-        }
-
-        .tech-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: var(--spacing-sm);
-        }
-
-        .tech-tag {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 4px 8px;
-            border-radius: var(--border-radius);
-            font-size: var(--font-size-sm);
-        }
-
-        .share-buttons {
-            display: flex;
-            gap: var(--spacing-sm);
-            margin-top: var(--spacing-md);
-        }
-
-        .share-button {
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: var(--text-color);
-            cursor: pointer;
-            padding: var(--spacing-sm) var(--spacing-md);
-            border-radius: var(--border-radius);
-            transition: all var(--transition-speed);
-            font-size: var(--font-size-sm);
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-        }
-
-        .share-button:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .share-button svg {
-            width: 16px;
-            height: 16px;
-            fill: currentColor;
-        }
-
-        /* Project title */
-        .project-title {
-            position: fixed;
-            top: var(--spacing-lg);
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--ui-bg-color);
-            backdrop-filter: blur(10px);
-            padding: var(--spacing-md) var(--spacing-lg);
-            border-radius: var(--border-radius);
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            font-size: var(--font-size-lg);
-            font-weight: 600;
-            text-align: center;
-            transition: opacity var(--transition-speed);
-        }
-
-        /* Navigation dots */
-        .nav-dots {
-            position: fixed;
-            bottom: calc(var(--spacing-lg) * 2 + 60px);
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 8px;
-            z-index: 999;
-        }
-
-        .nav-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.3);
-            transition: all var(--transition-speed);
-            cursor: pointer;
-        }
-
-        .nav-dot.active {
-            background-color: var(--text-color);
-            transform: scale(1.2);
-        }
-
-        /* Project iframe */
-        .project-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            transition: opacity var(--transition-speed);
+        
+        /* ══════ LOADING / ERROR STATES ══════ */
+        .loading-screen {
+            position: fixed; inset: 0; z-index: 50;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: #000;
+            transition: opacity 0.4s;
             pointer-events: none;
         }
-
-        .project-container.active {
-            opacity: 1;
+        .loading-screen.done { opacity: 0; }
+        
+        .loading-spinner {
+            width: 36px; height: 36px;
+            border: 2.5px solid rgba(255,255,255,0.12);
+            border-top-color: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin-bottom: 16px;
+        }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        
+        .loading-label { font-size: 13px; opacity: 0.5; letter-spacing: 0.3px; }
+        
+        .error-state {
+            position: fixed; inset: 0; z-index: 50;
+            display: none; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: #000; gap: 12px;
+        }
+        .error-state.show { display: flex; }
+        .error-state .err-icon { font-size: 40px; opacity: 0.6; }
+        .error-state .err-msg { font-size: 14px; opacity: 0.6; text-align: center; max-width: 280px; }
+        .error-state .retry-btn {
+            background: rgba(255,255,255,0.1); color: #fff;
+            border: 1px solid rgba(255,255,255,0.2); padding: 10px 24px;
+            border-radius: 20px; font-size: 13px; cursor: pointer;
+        }
+        
+        /* ══════ CAROUSEL BUTTONS ══════ */
+        .carousel-btn {
+            position: fixed; top: 50%; transform: translateY(-50%);
+            z-index: 20; width: 44px; height: 44px; border-radius: 50%;
+            background: rgba(20,20,20,0.5);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity 0.15s;
+            opacity: 0.45;
+            will-change: opacity;
+        }
+        .carousel-btn:hover, .carousel-btn:focus-visible { opacity: 0.9; background: rgba(40,40,40,0.6); }
+        .carousel-btn:active { transform: translateY(-50%) scale(0.93); }
+        .carousel-btn.prev { left: 12px; }
+        .carousel-btn.next { right: 12px; }
+        .carousel-btn svg { width: 20px; height: 20px; stroke: #fff; stroke-width: 2; fill: none; }
+        
+        /* ══════ LOCATION BAR ══════ */
+        .loc-bar {
+            position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+            z-index: 25; display: none; align-items: center; gap: 8px;
+            background: var(--panel-bg); backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--panel-border); border-radius: 20px;
+            padding: 6px 14px; font-size: 12px;
+        }
+        .loc-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .loc-dot.ready { background: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,0.5); }
+        .loc-dot.off { background: rgba(255,255,255,0.25); }
+        .loc-dot.searching { background: #fbbf24; animation: pulse 1.5s ease infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .loc-text { opacity: 0.7; white-space: nowrap; }
+        .demo-btn {
+            background: none; border: 1px solid rgba(255,255,255,0.18);
+            color: var(--text-muted); padding: 2px 8px; border-radius: 10px;
+            font-size: 10px; cursor: pointer; transition: all 0.2s;
+        }
+        .demo-btn.on { border-color: rgba(74,222,128,0.5); color: #4ade80; }
+        
+        /* ══════ DOT INDICATORS ══════ */
+        .dots {
+            position: fixed; bottom: 116px; left: 50%; transform: translateX(-50%);
+            z-index: 20; display: flex; gap: 8px;
+        }
+        .dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: rgba(255,255,255,0.3); cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+        }
+        .dot.active { background: #fff; transform: scale(1.5); }
+        .dot.locked { background: rgba(255,255,255,0.1); cursor: default; }
+        
+        /* ══════ INFO PANEL ══════ */
+        .info-panel {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            max-width: 480px; width: calc(100% - 32px);
+            background: var(--panel-bg); backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px; padding: 14px 18px; z-index: 20;
+            transition: opacity 0.3s, transform 0.3s;
             pointer-events: auto;
         }
-
-        .project-iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
+        .info-panel.ar { opacity: 0.15; }
+        
+        .info-top {
+            display: flex; justify-content: space-between;
+            align-items: flex-start; gap: 8px;
         }
-
-        /* Loading indicator */
-        .loading {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: var(--spacing-md);
-            z-index: 1002;
+        .info-title {
+            font-size: 16px; font-weight: 600; letter-spacing: 0.1px;
+            line-height: 1.3; flex: 1;
         }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-left-color: var(--text-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        .info-counter {
+            font-size: 11px; opacity: 0.35; white-space: nowrap; padding-top: 3px;
+            font-variant-numeric: tabular-nums;
         }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .info-desc {
+            font-size: 12.5px; line-height: 1.5; opacity: 0.65;
+            margin-top: 6px; max-height: 44px; overflow: hidden;
+            transition: max-height 0.4s ease;
         }
-
-        .loading-text {
-            font-size: var(--font-size-md);
+        .info-desc.open { max-height: 600px; }
+        .info-expand {
+            margin-top: 6px; font-size: 11px; opacity: 0.35;
+            cursor: pointer; text-align: center; transition: opacity 0.2s;
         }
-
-        /* Mobile adjustments */
-        @media (max-width: 768px) {
-            .project-title {
-                width: 80%;
-                font-size: var(--font-size-md);
-                padding: var(--spacing-sm) var(--spacing-md);
-            }
-
-            .info-panel {
-                width: 100%;
-                right: -100%;
-            }
-
-            .controls {
-                padding: var(--spacing-sm);
-            }
-
-            .nav-button {
-                width: 36px;
-                height: 36px;
-            }
-
-            .nav-button svg {
-                width: 20px;
-                height: 20px;
-            }
+        .info-expand:hover { opacity: 0.7; }
+        
+        /* ══════ AR BUTTON (model-viewer managed) ══════ */
+        .ar-btn {
+            position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%);
+            background: rgba(255,255,255,0.92); color: #000; border: none;
+            padding: 12px 24px; border-radius: 24px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.35);
+            z-index: 5;
+        }
+        .ar-btn svg { width: 17px; height: 17px; }
+        
+        /* ══════ FOOTER LINKS ══════ */
+        .footer-links {
+            position: fixed; bottom: 8px; right: 12px; z-index: 20;
+            display: flex; gap: 12px; font-size: 10px;
+        }
+        .footer-links a {
+            color: rgba(255,255,255,0.35); text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        .footer-links a:hover { opacity: 0.8; }
+        
+        /* ══════ SWIPE HINT ══════ */
+        .swipe-hint {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            z-index: 15; pointer-events: none; opacity: 0;
+            font-size: 13px; color: rgba(255,255,255,0.5);
+            transition: opacity 0.6s;
         }
     </style>
 </head>
 <body>
-    <!-- Project title -->
-    <div class="project-title" id="projectTitle">Loading projects...</div>
-    
-    <!-- Control bar -->
-    <div class="controls">
-        <button class="nav-button" onclick="previousProject()">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-            </svg>
-        </button>
-        <button class="info-button" onclick="showInfoPanel()">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
-            </svg>
-            Info
-        </button>
-        <button class="nav-button" onclick="nextProject()">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
-            </svg>
-        </button>
+    <!-- ══════ LOADING SCREEN ══════ -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <div class="loading-label">Loading gallery</div>
     </div>
     
-    <!-- Navigation dots -->
-    <div class="nav-dots" id="navDots"></div>
+    <!-- ══════ ERROR STATE ══════ -->
+    <div class="error-state" id="errorState">
+        <div class="err-icon">⚠</div>
+        <div class="err-msg" id="errMsg">Could not load projects</div>
+        <button class="retry-btn" onclick="location.reload()">Retry</button>
+    </div>
     
-    <!-- Project info panel -->
+    <!-- ══════ 3D VIEWER ══════ -->
+    <model-viewer
+        id="viewer"
+        camera-controls touch-action="pan-y"
+        ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto"
+        shadow-intensity="0.7" exposure="1.0" environment-image="neutral"
+        auto-rotate auto-rotate-delay="2000"
+        interaction-prompt="none" interpolation-decay="180"
+    >
+        <button slot="ar-button" class="ar-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="1" y="6" width="22" height="16" rx="2"></rect>
+                <circle cx="12" cy="15" r="3"></circle>
+            </svg>
+            View in AR
+        </button>
+    </model-viewer>
+    
+    <!-- ══════ LOCATION BAR ══════ -->
+    <div class="loc-bar" id="locBar">
+        <div class="loc-dot searching" id="locDot"></div>
+        <span class="loc-text" id="locText">Loading…</span>
+        <button class="demo-btn on" id="demoBtn" onclick="toggleDemo()">demo on</button>
+    </div>
+    
+    <!-- ══════ CAROUSEL BUTTONS ══════ -->
+    <button class="carousel-btn prev" onclick="RGVXR.prevModel()" aria-label="Previous project">
+        <svg viewBox="0 0 24 24"><polyline points="15,4 7,12 15,20"/></svg>
+    </button>
+    <button class="carousel-btn next" onclick="RGVXR.nextModel()" aria-label="Next project">
+        <svg viewBox="0 0 24 24"><polyline points="9,4 17,12 9,20"/></svg>
+    </button>
+    
+    <!-- ══════ DOT INDICATORS ══════ -->
+    <div class="dots" id="dots"></div>
+    
+    <!-- ══════ INFO PANEL ══════ -->
     <div class="info-panel" id="infoPanel">
-        <div class="info-panel-header">
-            <h2 class="info-panel-title" id="infoPanelTitle">Project Info</h2>
-            <button class="close-button" onclick="hideInfoPanel()">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                </svg>
-            </button>
+        <div class="info-top">
+            <div class="info-title" id="infoTitle">Loading…</div>
+            <div class="info-counter" id="infoCounter"></div>
         </div>
-        
-        <div class="info-section">
-            <div class="info-section-title">Description</div>
-            <div class="info-section-content" id="projectDescription">Loading...</div>
-        </div>
-        
-        <div class="info-section">
-            <div class="info-section-title">Technologies</div>
-            <div class="tech-tags" id="projectTechnologies"></div>
-        </div>
-        
-        <div class="info-section">
-            <div class="info-section-title">Instructions</div>
-            <div class="info-section-content" id="projectInstructions">Loading...</div>
-        </div>
-        
-        <div class="info-section">
-            <div class="info-section-title">Share</div>
-            <div class="share-buttons">
-                <button class="share-button" id="copyLinkBtn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                    </svg>
-                    Copy Link
-                </button>
-            </div>
-        </div>
+        <div class="info-desc" id="infoDesc"></div>
+        <div class="info-expand" id="infoExpand" onclick="toggleDesc()">Read more</div>
     </div>
     
-    <!-- Project containers will be added here dynamically -->
-    <div id="projectsContainer"></div>
-    
-    <!-- Loading indicator -->
-    <div class="loading" id="loading">
-        <div class="spinner"></div>
-        <div class="loading-text">Loading projects...</div>
+    <!-- ══════ FOOTER ══════ -->
+    <div class="footer-links">
+        <a href="admin/">admin</a>
+        <a href="https://github.com/jlicerio/RGVXR" target="_blank">github</a>
     </div>
+    
+    <div class="swipe-hint" id="swipeHint"></div>
     
     <script>
-        // Global variables
-        let projects = [];
-        let currentIndex = 0;
+        // ── UI State ──
+        let descOpen = false;
+        const $ = id => document.getElementById(id);
         
-        // Load projects from API
-        async function loadProjects() {
-            try {
-                const response = await fetch('/api/projects');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                projects = await response.json();
-                
-                console.log('Loaded projects with metadata:', projects);
-                
-                if (projects.length === 0) {
-                    document.getElementById('projectTitle').textContent = 'No projects found';
-                    document.getElementById('loading').style.display = 'none';
-                    return;
-                }
-                
-                // Create project containers
-                const projectsContainer = document.getElementById('projectsContainer');
-                projects.forEach((project, index) => {
-                    const container = document.createElement('div');
-                    container.className = 'project-container';
-                    container.id = `project-${index}`;
-                    
-                    const iframe = document.createElement('iframe');
-                    iframe.className = 'project-iframe';
-                    iframe.id = `iframe-${index}`;
-                    iframe.setAttribute('allowfullscreen', '');
-                    iframe.setAttribute('allow', 'camera; microphone; accelerometer; gyroscope; magnetometer; xr-spatial-tracking;');
-                    
-                    container.appendChild(iframe);
-                    projectsContainer.appendChild(container);
-                });
-                
-                // Create navigation dots
-                const navDots = document.getElementById('navDots');
-                projects.forEach((project, index) => {
-                    const dot = document.createElement('div');
-                    dot.className = 'nav-dot';
-                    dot.onclick = () => showProject(index);
-                    navDots.appendChild(dot);
-                });
-                
-                // Show first project
-                showProject(0);
-                
-                // Hide loading indicator
-                document.getElementById('loading').style.display = 'none';
-            } catch (error) {
-                console.error('Error loading projects:', error);
-                document.getElementById('projectTitle').textContent = 'Error loading projects. Please check your network connection.';
-                document.getElementById('loading').style.display = 'none';
-                
-                // Add a retry button
-                const retryButton = document.createElement('button');
-                retryButton.className = 'info-button';
-                retryButton.textContent = 'Retry Loading';
-                retryButton.onclick = loadProjects;
-                document.getElementById('projectTitle').appendChild(retryButton);
-            }
+        function toggleDesc() {
+            descOpen = !descOpen;
+            $('infoDesc').classList.toggle('open', descOpen);
+            $('infoExpand').textContent = descOpen ? 'Show less' : 'Read more';
         }
         
-        // Show project at index
-        function showProject(index) {
-            if (index < 0 || index >= projects.length) return;
-            
-            // Update current index
-            currentIndex = index;
-            
-            // Get the current project
-            const project = projects[index];
-            console.log('Current project metadata:', project); // Debug log
-            
-            // Update project containers
-            const containers = document.querySelectorAll('.project-container');
-            containers.forEach((container, i) => {
-                if (i === index) {
-                    container.classList.add('active');
-                    
-                    // Load iframe content if not already loaded
-                    const iframe = container.querySelector('iframe');
-                    if (!iframe.src) {
-                        iframe.src = project.path;
-                    }
-                    
-                    // Send message to pause other iframes
-                    containers.forEach((otherContainer, j) => {
-                        if (j !== i) {
-                            const otherIframe = otherContainer.querySelector('iframe');
-                            if (otherIframe.contentWindow) {
-                                otherIframe.contentWindow.postMessage('pause', '*');
-                            }
-                        }
-                    });
-                    
-                    // Send message to resume current iframe
-                    if (iframe.contentWindow) {
-                        iframe.contentWindow.postMessage('resume', '*');
-                    }
-                } else {
-                    container.classList.remove('active');
-                }
+        function toggleDemo() {
+            const on = RGVXR.toggleDemoMode();
+            $('demoBtn').classList.toggle('on', on);
+            $('demoBtn').textContent = on ? 'demo on' : 'demo';
+        }
+        
+        // ── Update UI from platform state ──
+        function buildDots() {
+            const s = RGVXR.state;
+            if (!s.projects.length) return;
+            const html = s.projects.map((_, i) =>
+                `<div class="dot${i===0?' active':''}" onclick="RGVXR.goToModel(${i})"></div>`
+            ).join('');
+            $('dots').innerHTML = html;
+        }
+        
+        function refreshDots() {
+            const s = RGVXR.state;
+            const all = $('dots').querySelectorAll('.dot');
+            if (!all.length) { buildDots(); return; }
+            all.forEach((d, i) => {
+                d.classList.toggle('active', i === s.currentIdx);
+                d.classList.toggle('locked', !RGVXR.isUnlocked(i));
             });
+        }
+        
+        function refreshInfo(project) {
+            $('infoTitle').textContent = project?.title || 'Untitled';
+            $('infoDesc').textContent = project?.description || '';
+            document.title = (project?.title || 'AR Project') + ' | RGVXR';
             
-            // Update navigation dots
-            const dots = document.querySelectorAll('.nav-dot');
-            dots.forEach((dot, i) => {
-                dot.classList[i === index ? 'add' : 'remove']('active');
-            });
-            
-            // Update project title
-            document.getElementById('projectTitle').textContent = project.title || project.name;
-            
-            // Update info panel with metadata
-            document.getElementById('infoPanelTitle').textContent = project.title || project.name;
-            document.getElementById('projectDescription').textContent = project.description || 'No description available.';
-            
-            // Add URL link if it exists
-            if (project.moreInfoUrl) {
-                const urlParagraph = document.createElement('p');
-                const urlLink = document.createElement('a');
-                urlLink.href = project.moreInfoUrl;
-                urlLink.textContent = 'More Information';
-                urlLink.target = '_blank';  // Opens in new tab
-                urlLink.style.color = '#ffffff';  // Matches the theme
-                urlParagraph.appendChild(urlLink);
-                document.getElementById('projectDescription').appendChild(urlParagraph);
+            const s = RGVXR.state;
+            let ctr = `${s.currentIdx + 1}/${s.projects.length}`;
+            if (project?._distance !== undefined) {
+                ctr += ` · ${RGVXR.fmtDist(project._distance)}`;
+                if (!RGVXR.isUnlocked(s.currentIdx)) ctr += ' 🔒';
             }
+            $('infoCounter').textContent = ctr;
             
-            // Update technologies
-            const techContainer = document.getElementById('projectTechnologies');
-            techContainer.innerHTML = '';
-            if (project.technologies && project.technologies.length > 0) {
-                project.technologies.forEach(tech => {
-                    const tag = document.createElement('div');
-                    tag.className = 'tech-tag';
-                    tag.textContent = tech;
-                    techContainer.appendChild(tag);
+            const expand = $('infoExpand');
+            expand.style.display = (project?.description || '').length > 160 ? '' : 'none';
+            if (descOpen) { descOpen = false; $('infoDesc').classList.remove('open'); }
+        }
+        
+        function refreshLocBar() {
+            // GPS bar is hidden by default — only show when user explicitly enables GPS
+            // and has a location fix. Demo mode keeps it hidden.
+            const bar = document.getElementById('locBar');
+            bar.style.display = 'none';
+        }
+        
+        // ── Wire events ──
+        let infoUpdatePending = false;
+        RGVXR.on('modelChange', ({ index, project }) => {
+            // Batch DOM updates to prevent layout thrashing
+            if (!infoUpdatePending) {
+                infoUpdatePending = true;
+                requestAnimationFrame(() => {
+                    refreshDots();
+                    refreshInfo(project);
+                    refreshLocBar();
+                    infoUpdatePending = false;
                 });
+            }
+            if (project) history.replaceState(null, '', '#' + project.id);
+        });
+        
+        RGVXR.on('loadError', ({ message }) => {
+            $('loadingScreen').classList.add('done');
+            $('errorState').classList.add('show');
+            $('errMsg').textContent = message || 'Could not load projects';
+        });
+        
+        // ── model-viewer events ──
+        const viewer = $('viewer');
+        
+        viewer.addEventListener('load', () => {
+            $('loadingScreen').classList.add('done');
+            RGVXR.state.loading = false;
+        });
+        
+        viewer.addEventListener('error', () => {
+            $('loadingScreen').classList.add('done');
+            RGVXR.state.loading = false;
+        });
+        
+        viewer.addEventListener('ar-status', e => {
+            const panel = $('infoPanel');
+            if (e.detail.status === 'session-started') {
+                panel.classList.add('ar');
             } else {
-                const tag = document.createElement('div');
-                tag.className = 'tech-tag';
-                tag.textContent = 'No technologies specified';
-                techContainer.appendChild(tag);
-            }
-            
-            // Update instructions
-            const instructionsContainer = document.getElementById('projectInstructions');
-            instructionsContainer.innerHTML = '';
-            if (project.instructions) {
-                if (Array.isArray(project.instructions)) {
-                    const ul = document.createElement('ul');
-                    project.instructions.forEach(instruction => {
-                        const li = document.createElement('li');
-                        li.textContent = instruction;
-                        ul.appendChild(li);
-                    });
-                    instructionsContainer.appendChild(ul);
-                } else {
-                    instructionsContainer.textContent = project.instructions;
-                }
-            } else {
-                instructionsContainer.textContent = 'No instructions available.';
-            }
-            
-            // Update URL
-            updateProjectUrl(index);
-        }
-        
-        // Navigation functions
-        function nextProject() {
-            showProject((currentIndex + 1) % projects.length);
-        }
-        
-        function previousProject() {
-            showProject((currentIndex - 1 + projects.length) % projects.length);
-        }
-        
-        // Info panel functions
-        function showInfoPanel() {
-            document.getElementById('infoPanel').classList.add('active');
-        }
-        
-        function hideInfoPanel() {
-            document.getElementById('infoPanel').classList.remove('active');
-        }
-        
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            loadProjects();
-        });
-        
-        // Keyboard navigation
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'ArrowRight') {
-                nextProject();
-            } else if (event.key === 'ArrowLeft') {
-                previousProject();
-            } else if (event.key === 'i' || event.key === 'I') {
-                if (infoPanel.classList.contains('active')) {
-                    hideInfoPanel();
-                } else {
-                    showInfoPanel();
-                }
-            } else if (event.key === 'Escape') {
-                hideInfoPanel();
-            }
-        });
-
-        // Handle direct project links
-        function handleDirectLinks() {
-            // Get the project ID from the URL hash (e.g., #ar-object)
-            const projectId = window.location.hash.substring(1);
-            
-            if (projectId) {
-                // Find the project index by ID
-                const projectIndex = projects.findIndex(project => project.id === projectId);
-                
-                if (projectIndex !== -1) {
-                    // Set the current index and show the project
-                    currentIndex = projectIndex;
-                    showProject(currentIndex);
-                }
-            }
-        }
-
-        // Update URL when changing projects
-        function updateProjectUrl(index) {
-            if (projects[index]) {
-                // Update the URL hash without triggering a page reload
-                const projectId = projects[index].id;
-                history.replaceState(null, null, `#${projectId}`);
-                
-                // Update page title with project name
-                document.title = `${projects[index].title} | AR Projects Gallery`;
-            }
-        }
-
-        // Listen for hash changes to support back/forward navigation
-        window.addEventListener('hashchange', function() {
-            handleDirectLinks();
-        });
-
-        // Call this after loading projects
-        window.addEventListener('load', function() {
-            loadProjects().then(() => {
-                handleDirectLinks();
-            });
-        });
-
-        // Copy link functionality
-        document.getElementById('copyLinkBtn').addEventListener('click', function() {
-            const url = window.location.href;
-            navigator.clipboard.writeText(url).then(function() {
-                // Show success message
-                const originalText = this.textContent;
-                this.textContent = 'Link Copied!';
-                
+                panel.classList.remove('ar');
+                // Force reload to clear AR artifacts
                 setTimeout(() => {
-                    this.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                        </svg>
-                        Copy Link
-                    `;
-                }, 2000);
-            }.bind(this)).catch(function(err) {
-                console.error('Could not copy text: ', err);
-            });
+                    const s = viewer.src;
+                    viewer.src = null;
+                    requestAnimationFrame(() => { viewer.src = s; });
+                }, 200);
+            }
         });
-
-        // Add network status monitoring
-        window.addEventListener('online', function() {
-            console.log('Network connection restored');
-            loadProjects();
+        
+        // ── Keyboard ──
+        document.addEventListener('keydown', e => {
+            if (e.target.tagName === 'INPUT') return;
+            if (e.key === 'ArrowRight') RGVXR.nextModel();
+            else if (e.key === 'ArrowLeft') RGVXR.prevModel();
+            else if (e.key === 'i' || e.key === 'I') toggleDesc();
         });
-
-        window.addEventListener('offline', function() {
-            console.log('Network connection lost');
-            document.getElementById('projectTitle').textContent = 'Network connection lost. Please check your connection.';
+        
+        // ── Touch swipe ──
+        let tx = 0, ty = 0;
+        document.addEventListener('touchstart', e => {
+            tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+        }, { passive:true });
+        
+        document.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - tx;
+            const dy = e.changedTouches[0].clientY - ty;
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+                dx < 0 ? RGVXR.nextModel() : RGVXR.prevModel();
+            }
+        });
+        
+        // ── Swipe hint (show once, on mobile) ──
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            setTimeout(() => {
+                const hint = $('swipeHint');
+                hint.textContent = '← swipe to browse →';
+                hint.style.opacity = '1';
+                setTimeout(() => { hint.style.opacity = '0'; }, 3000);
+            }, 2000);
+        }
+        
+        // ── Boot ──
+        RGVXR.init(viewer).then(() => {
+            // Update page title from platform config
+            if (RGVXR.state.config?.platform?.name) {
+                document.title = RGVXR.state.config.platform.name + ' — AR Gallery';
+            }
+            // Build dot indicators once
+            buildDots();
+            // Check URL hash for direct project link
+            const hash = window.location.hash.replace('#', '');
+            if (hash) {
+                const idx = RGVXR.state.projects.findIndex(p => p.id === hash);
+                if (idx >= 0) RGVXR.loadModel(idx, true);
+            }
+            refreshLocBar();
+        }).catch(err => {
+            console.error('Platform init failed:', err);
+            $('loadingScreen').classList.add('done');
+            $('errorState').classList.add('show');
+            $('errMsg').textContent = err.message || 'Failed to initialize';
         });
     </script>
 </body>
